@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>オンライン人狼</title>
+<meta name="description" content="登録・ログイン不要で遊べるオンライン人狼。部屋名を決めるだけで友達と遊べます。">
+<style>
+:root{--bg:#14111f;--c:#221d36;--t:#eee;--a:#e0556b;--m:#9a93b8}
+@media(prefers-color-scheme:light){:root{--bg:#f3f1f9;--c:#fff;--t:#222;--m:#666}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;max-width:760px;margin:auto;padding:10px}
+.card{background:var(--c);border-radius:10px;padding:10px 12px;margin:8px 0}
+button{background:var(--a);color:#fff;border:0;border-radius:6px;padding:6px 12px;margin:2px;cursor:pointer}
+button.s{background:#3a8f5c}input,select{padding:6px;border-radius:6px;border:1px solid var(--m);background:var(--bg);color:var(--t)}
+.p{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #8883;padding:4px 0}.dead{opacity:.45;text-decoration:line-through}
+#msgs{height:200px;overflow:auto;font-size:14px}.w{color:#e0556b}.ms{color:#4aa3df}.d{color:var(--m)}small{color:var(--m)}
+.cfg{display:inline-block;width:200px;margin:1px 0}.cfg input{width:48px}.sm{padding:2px 8px;font-size:12px}.rl{display:block;padding:3px 0}details>summary{cursor:pointer}
+
+body{transition:background .8s,color .8s}
+body.ph-night{--bg:#090b1c;--c:#161a35;--t:#e8eaff;--m:#8d93c8;background:radial-gradient(1.5px 1.5px at 20% 30%,#fff9,transparent),radial-gradient(1px 1px at 70% 20%,#fff9,transparent),radial-gradient(1.5px 1.5px at 40% 70%,#fff7,transparent),radial-gradient(1px 1px at 85% 60%,#fff8,transparent),radial-gradient(1px 1px at 10% 85%,#fff7,transparent),var(--bg);background-attachment:fixed}
+body.ph-day{--bg:#fbf1d8;--c:#fffdf6;--t:#2b2418;--m:#7a6a4d;--a:#d9534f;background:linear-gradient(#ffe9a8,#fbf1d8 45%) fixed}
+body.ph-vote{--bg:#1d0f16;--c:#2c1620;--t:#f3e6ea;--m:#b88f9c;background:radial-gradient(circle at 50% 0,#4a1626,var(--bg) 70%) fixed}
+body::before{position:fixed;right:12px;top:4px;font-size:30px;pointer-events:none;z-index:5;opacity:.6}
+body.ph-night::before{content:'🌙';filter:drop-shadow(0 0 12px #aab4ff);animation:flt 6s ease-in-out infinite}
+body.ph-day::before{content:'☀️';animation:spn 40s linear infinite}
+body.ph-vote::before{content:'🗳️'}
+.fac{border-left:4px solid;padding:2px 0 2px 8px;margin:8px 0}.fac>summary{padding:3px 0}
+#cd.warn{animation:blk .8s infinite}
+#fx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50;background:radial-gradient(circle,#000a,#000e)}
+#fx.on{opacity:1;pointer-events:auto}
+.fxb{text-align:center;color:#fff;padding:20px;max-width:92%}
+.fxi{font-size:76px;animation:pop .7s cubic-bezier(.2,1.6,.4,1) both}
+.fxt{font-size:28px;font-weight:700;margin-top:8px;text-shadow:0 0 18px var(--fc);animation:rise .8s .1s both}
+.fxs{font-size:14px;margin-top:10px;color:#ddd;line-height:1.8;animation:rise 1s .3s both}
+#fx.nightfx{background:linear-gradient(#050818f2,#0d1030f2)}
+#fx.dayfx{background:linear-gradient(#ffd56bf0,#ff9f5af0)}#fx.dayfx .fxt,#fx.dayfx .fxs{color:#3a2200;text-shadow:none}
+#fx.exec{background:radial-gradient(circle,#4a0010e8,#16000add)}
+#fx.win{background:radial-gradient(circle,#1c1840ee,#05030fee)}
+#fx2{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:60}
+#fx2.flash{animation:fls 1.2s}
+.cf{position:absolute;top:-40px;animation:fall linear forwards}
+#toast{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:6px;pointer-events:none;width:max-content;max-width:92%}
+.toast{background:#000d;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;animation:rise .4s both}
+.diefx{animation:die 1.4s}
+@keyframes pop{0%{transform:scale(0) rotate(-30deg)}100%{transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes die{0%,100%{transform:none}10%,50%{transform:translateX(-7px)}30%,70%{transform:translateX(7px)}0%{background:#e0556bcc}100%{background:transparent}}
+@keyframes fls{0%{background:#e0556bcc}100%{background:transparent}}
+@keyframes blk{50%{opacity:.25}}
+@keyframes flt{50%{transform:translateY(6px)}}
+@keyframes spn{to{transform:rotate(360deg)}}
+@keyframes fall{to{transform:translateY(112vh) rotate(540deg)}}
+@media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+
+#rbtn{position:fixed;right:12px;bottom:12px;z-index:45;border-radius:22px;padding:10px 14px;box-shadow:0 2px 10px #0006;font-size:14px}
+#rm2{position:fixed;inset:0;z-index:55;background:#000b;display:none;align-items:flex-end;justify-content:center}
+#rm2.on{display:flex}
+#rbox{background:var(--c);color:var(--t);width:100%;max-width:760px;max-height:88vh;overflow:auto;border-radius:14px 14px 0 0;padding:12px 14px 20px;animation:rise .3s both}
+#rbox .hd{display:flex;gap:6px;align-items:center;position:sticky;top:-12px;background:var(--c);padding:8px 0;z-index:1}
+#rbox .hd input{flex:1;min-width:0}
+.ri{padding:6px 0;border-bottom:1px solid #8882}.ri.me{background:#e0556b22;border-radius:6px;padding:6px}
+.bdg{display:inline-block;background:var(--a);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-left:4px}
+.rl2{cursor:pointer;text-decoration:underline dotted}
+.cfg.yp{width:100%;display:block;padding:3px 0;border-bottom:1px solid #8882}.yp input{width:54px}
+
+/* ===== GAME THEME v2 ===== */
+html{background:#0b0916;color-scheme:dark}
+body,body[class]{background:none!important;--bg:#0f0b1d;--c:#1a1430d9;--t:#f1ecff;--m:#b3aad6;--a:#e0556b;--sil:#07050f;--win:#ffcf6b;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;text-shadow:0 1px 2px #0006}
+body.ph-day{--c:#fff8e8e6;--t:#2b2418;--m:#7a6a4d;--a:#d9534f;--sil:#3b2a1c;--win:#fff;text-shadow:none}
+body.ph-vote{--c:#2a1220e0;--t:#ffe9ee;--m:#d3a0ae;--sil:#12040a}
+body::before{content:none!important}
+#scene{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+#scene i,#scene svg{position:absolute;display:block;transition:opacity 1s,background 1s}
+#scene .sky{inset:0;background:linear-gradient(#1b1240,#3a2150 60%,#7a3a5a)}
+body.ph-night #scene .sky{background:linear-gradient(#04050f,#0b1030 55%,#1c2350)}
+body.ph-day #scene .sky{background:linear-gradient(#6cc3f0,#bfe6ff 55%,#ffe7a8)}
+body.ph-vote #scene .sky{background:linear-gradient(#1a0309,#5a0f22 60%,#a3202f)}
+body.ph-end #scene .sky{background:linear-gradient(#150f34,#4a2a6a 60%,#e0a14a)}
+#scene .stars{inset:0;opacity:.35;background:radial-gradient(1.5px 1.5px at 12% 18%,#fff,transparent),radial-gradient(1px 1px at 33% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 58% 14%,#fff,transparent),radial-gradient(1px 1px at 76% 33%,#fff,transparent),radial-gradient(1.5px 1.5px at 90% 12%,#fff,transparent),radial-gradient(1px 1px at 22% 62%,#fff,transparent),radial-gradient(1px 1px at 68% 55%,#fff,transparent);animation:tw 4s ease-in-out infinite}
+body.ph-night #scene .stars{opacity:1}body.ph-day #scene .stars{opacity:0}
+#scene .moon{width:90px;height:90px;border-radius:50%;right:9%;top:7%;background:radial-gradient(circle at 35% 35%,#fffbe6,#e8e1b4 60%,#b9b27e);box-shadow:0 0 60px 18px #aab4ff66;opacity:0;animation:flt 8s ease-in-out infinite}
+body.ph-night #scene .moon{opacity:1}
+body.ph-vote #scene .moon{opacity:.9;background:radial-gradient(circle at 35% 35%,#ffb0b0,#e0556b 60%,#7a1020);box-shadow:0 0 70px 22px #ff3b5c66}
+#scene .sun{width:120px;height:120px;border-radius:50%;left:10%;top:6%;opacity:0;background:radial-gradient(circle,#fff6c4 30%,#ffd55a 60%,transparent 72%);box-shadow:0 0 80px 30px #ffd55a88;animation:flt 7s ease-in-out infinite}
+body.ph-day #scene .sun{opacity:1}
+#scene .cloud{width:180px;height:50px;border-radius:50px;background:#fff;opacity:0;top:18%;left:-200px;filter:blur(2px);box-shadow:60px -20px 0 10px #fff,-40px 6px 0 -4px #fff;animation:drift 60s linear infinite}
+#scene .c2{top:32%;animation-duration:90s;animation-delay:-30s;transform:scale(.7)}
+body.ph-day #scene .cloud{opacity:.85}
+#scene .fog{left:-20%;right:-20%;bottom:8%;height:30%;opacity:.25;background:radial-gradient(ellipse at 30% 60%,#cfd6ff,transparent 60%),radial-gradient(ellipse at 75% 40%,#cfd6ff,transparent 55%);animation:fogm 24s ease-in-out infinite alternate}
+body.ph-day #scene .fog{opacity:.12}
+#scene .vig{inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,#e0102a88)}
+body.ph-vote #scene .vig{opacity:1;animation:pulse 2s ease-in-out infinite}
+#scene .vil{left:0;bottom:0;width:100%;height:24vh;min-height:130px;fill:var(--sil)}
+#scene .vil .wn{fill:var(--win);opacity:.9;animation:tw 5s ease-in-out infinite}
+body.ph-day #scene .vil .wn{opacity:.15}
+#scene .ff{width:5px;height:5px;border-radius:50%;background:#ffe27a;box-shadow:0 0 8px 3px #ffe27a99;left:var(--x);bottom:var(--y);animation:ffl var(--d) ease-in-out infinite;opacity:.8}
+body.ph-day #scene .ff{opacity:0}
+body[data-f="1"]:not(.ph-day) #scene .sky{filter:hue-rotate(-18deg) saturate(1.3)}
+body[data-f="2"]:not(.ph-day) #scene .sky{filter:hue-rotate(35deg) saturate(1.2)}
+body[data-f="3"]:not(.ph-day) #scene .sky{filter:hue-rotate(70deg) saturate(1.1)}
+@keyframes tw{50%{opacity:.4}}@keyframes drift{to{transform:translateX(130vw)}}@keyframes fogm{to{transform:translateX(8%)}}
+@keyframes pulse{50%{opacity:.45}}@keyframes ffl{0%,100%{transform:translate(0,0)}33%{transform:translate(18px,-26px)}66%{transform:translate(-14px,-12px)}}
+/* header & cards */
+.logo{display:flex;align-items:center;gap:10px;margin:6px 0 2px}.logo b{font:700 30px/1 "Hiragino Mincho ProN","Yu Mincho",serif;letter-spacing:.12em;background:linear-gradient(#fff,#f5c76a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 6px #000a)}
+.logo span{font-size:34px;animation:flt 4s ease-in-out infinite;filter:drop-shadow(0 0 10px #e0556b)}
+.card{background:var(--c);border:1px solid #ffffff22;border-radius:16px;backdrop-filter:blur(8px);box-shadow:0 6px 24px #0005;padding:12px 14px}
+body.ph-day .card{border-color:#00000018}
+button{background:linear-gradient(#f0687f,#c23a52);box-shadow:0 2px 0 #7a1d2e,0 4px 10px #0004;font-weight:700;transition:transform .12s,filter .12s}button:hover{filter:brightness(1.12)}button:active{transform:translateY(2px);box-shadow:none}
+button.s{background:linear-gradient(#52c47f,#2d8a55);box-shadow:0 2px 0 #1b5434,0 4px 10px #0004}
+input,select{background:#0007;color:#fff;border-color:#ffffff33}body.ph-day input,body.ph-day select{background:#fff;color:#222}
+.p{border-bottom:0;background:#ffffff0d;border-radius:12px;margin:5px 0;padding:6px 8px;gap:8px;animation:rise .4s both}.p>span:nth-child(2){flex:1}.p>span:last-child{text-align:right}
+.av{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;background:hsl(var(--h) 55% 38%);border:2px solid hsl(var(--h) 70% 65%);color:#fff}
+.av.pt{background:none;border:0;display:block;width:auto;height:auto}
+.dead+*{}.p:has(.dead){filter:grayscale(1)}
+/* portrait */
+.pt{display:inline-block;line-height:0;flex:none}.pt svg{overflow:visible}.pt .au{transform-origin:60px 70px;animation:spn 16s linear infinite}
+.pt .ey{transform-box:fill-box;transform-origin:center;animation:bl 4.5s infinite}.pt .ear{transform-box:fill-box;transform-origin:50% 100%;animation:tl 5s ease-in-out infinite}
+.pt.big svg{animation:flt 4s ease-in-out infinite;filter:drop-shadow(0 0 18px var(--fc))}
+@keyframes bl{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}@keyframes tl{0%,90%,100%{transform:rotate(0)}95%{transform:rotate(-9deg)}}
+#mycard{display:flex;gap:12px;align-items:center;border:2px solid var(--fc);box-shadow:0 0 22px -4px var(--fc),inset 0 0 30px -14px var(--fc);position:relative;overflow:hidden}
+#mycard::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,#ffffff22 50%,transparent 60%);transform:translateX(-120%);animation:shn 5s infinite}
+#mycard .mn{font:700 26px/1.2 "Hiragino Mincho ProN","Yu Mincho",serif;text-shadow:0 0 14px var(--fc)}#mycard .md{font-size:13px;margin-top:4px;color:var(--m)}
+@keyframes shn{60%,100%{transform:translateX(120%)}}
+#fx.rv{background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--fc) 35%,#000),#000f 75%)}
+#fx.rv .fxi{font-size:0;animation:none}#fx.rv .pt{animation:flipin .9s cubic-bezier(.2,1.4,.4,1) both}
+#fx.rv::before{content:"";position:absolute;width:140vmax;height:140vmax;left:50%;top:40%;margin:-70vmax;background:repeating-conic-gradient(var(--fc) 0 6deg,transparent 6deg 18deg);opacity:.14;animation:spn 40s linear infinite}
+@keyframes flipin{from{transform:rotateY(90deg) scale(.3);opacity:0}to{transform:none;opacity:1}}
+.ri .pt{float:left;margin:0 10px 4px 0}.ri{overflow:hidden}
+@media(prefers-reduced-motion:reduce){#scene *{animation:none!important}}
+</style><!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-73HSKWP1VH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-73HSKWP1VH');
+</script>
+</head><body>
+<div id=scene><i class=sky></i><i class=stars></i><i class=moon></i><i class=sun></i><i class=cloud></i><i class="cloud c2"></i><i class=fog></i><svg class=vil viewBox="0 0 800 160" preserveAspectRatio="xMidYMax slice"><path d="M0 160V132Q200 118 400 130T800 126V160Z"/><g><path d="M40 132l10-40 10 40zM64 132l8-52 8 52zM700 130l10-46 10 46zM728 130l8-36 8 36z"/><path d="M150 132v-34l30-24 30 24v34zM330 130v-40l36-28 36 28v40zM520 132v-30l28-22 28 22v30zM600 130v-36l30-26 30 26v36z"/><rect x="396" y="40" width="10" height="40"/><path d="M380 50h42l-21-22z"/></g><g class=wn><rect x="172" y="108" width="8" height="10"/><rect x="354" y="104" width="9" height="11"/><rect x="540" y="110" width="7" height="9"/><rect x="620" y="106" width="8" height="10"/></g></svg><i class=vig></i></div><div class=logo><span>🐺</span><b>月夜の人狼</b></div>
+<div id="top" class="card">
+ 名前 <input id="nm" size="10" maxlength="20"> 部屋名 <input id="rm" size="10" maxlength="40" placeholder="好きな合言葉"> <button onclick="enter()">入室 / 部屋を作る</button>
+ <br><small>存在しない部屋名を入力すると、あなたがホスト(進行役)の新部屋を作成します。</small>
+</div>
+<div id="main"></div>
+<div id="chat" class="card" style="display:none"><div id="msgs"></div>
+ <select id="ch"></select> <input id="ct" size="26" maxlength="200" onkeydown="if(event.key=='Enter')say()"> <button onclick="say()">送信</button></div>
+<div id=fx onclick="this.className=''"></div><div id=fx2></div><div id=toast></div><button id=rbtn onclick="roles()">📖 役職</button><div id=rm2 onclick="if(event.target==this)roles(0)"><div id=rbox><div class=hd><b>📖 役職の詳細</b><input id=rq placeholder="役職名で検索" oninput="rlist()"><button onclick="roles(0)">閉じる</button></div><div id=rlist></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="assets/config.js"></script>
+<script>
+// Supabase の接続情報は assets/config.js(Cresd Chat / Adv Tools と同じ値)から読みます
+const SUPA_URL=window.CHAT_CONFIG.supabaseUrl, SUPA_KEY=window.CHAT_CONFIG.anonKey;
+const db=supabase.createClient(SUPA_URL,SUPA_KEY,{realtime:{params:{eventsPerSecond:5}}});
+// ★ 無料枠対策の設定
+const ROOM_TTL_H=6;   // この時間(時間)更新が無い部屋は削除対象
+const IDLE_MIN=60;    // この時間(分)操作が無いと、この端末の通信を停止
+const TTL=ROOM_TTL_H*3600e3,IDLE_MS=IDLE_MIN*60e3;
+let lastAct=Date.now(),lastSay=0,tickH,gone_=0;
+['click','keydown','touchstart'].forEach(e=>addEventListener(e,()=>lastAct=Date.now(),{passive:true}));
+function gone(){if(gone_)return;gone_=1;clearInterval(tickH);try{db.removeAllChannels()}catch(e){}document.body.insertAdjacentHTML('afterbegin','<div class=card style="position:sticky;top:0;z-index:80;background:var(--a);color:#fff">長時間操作がなかったため通信を停止しました(無料枠の節約)。 <button onclick="location.reload()" style="background:#fff;color:#222">再接続</button></div>')}
+
+const $=s=>document.querySelector(s), esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R={villager:['村人','人間','能力なし。推理と議論で人狼を探す'],werewolf:['人狼','人狼陣営','夜に襲撃先へ投票(初日夜は襲撃なし)。仲間が分かる'],
+seer:['占い師','人間','夜に1人を占い、人狼か人間か分かる。妖狐を占うと呪殺'],medium:['霊能者','人間','朝に前日の処刑者が人狼だったか分かる'],
+hunter:['狩人','人間','夜に1人を護衛(自分以外)。襲撃から守る'],mason:['共有者','人間','共有者同士が互いに分かる'],
+madman:['狂人','人狼陣営','人間扱いだが人狼の勝利を目指す。占いは人間'],fox:['妖狐','第三陣営','襲撃されない。占われると死亡。最後まで生き残れば勝利'],
+betrayer:['背徳者','第三陣営','妖狐の勝利を目指す。妖狐が全滅すると後追い死'],cat:['猫又','人間','襲撃・処刑で死ぬと、生存者1人を道連れにする'],
+sheriff:['シェリフ','人間','2日目以降、毎晩1人を撃てる。人狼・ジャッカル・妖狐系なら倒せるが、それ以外を撃つと自分が死ぬ'],mayor:['メイヤー','人間','投票が2票分としてカウントされる'],bait:['ベイト','人間','人狼に襲撃されて死ぬと、襲撃した人狼の1人の名前が全員に公開される'],tracker:['トラッカー','人間','夜に1人を追跡し、その人が夜に誰を対象に行動したか分かる'],jackal:['ジャッカル','第三陣営','2日目以降の夜に1人を襲撃、または1度だけ勧誘してサイドキックにできる。占いは人間。最後の勝者を目指す'],sidekick:['サイドキック','第三陣営','ジャッカルの仲間。ジャッカルが死ぬと新ジャッカルになる'],opportunist:['オポチュニスト','第三陣営','最後まで生き残れば、どの陣営が勝っても追加で勝利'],arsonist:['アーソニスト','第三陣営','夜に油を塗り、点火すると油を塗った全員が死ぬ。最後の1人なら単独勝利。生存中は村人陣営の勝利を阻む'],suicidal:['自殺願望者','第三陣営','夜に死亡すると単独勝利(処刑では勝てない)'],sniper:['狙撃手','人間','2日目以降の夜に1度だけ1人を狙撃して殺害できる(護衛・妖狐にも有効)'],poisoner:['毒人','人間','処刑されると、自分に投票した人のうち1人をランダムに道連れにする'],gravekeeper:['墓守','人間','毎朝、昨夜の死者の役職が分かる(処刑者は分からない)'],cursed:['呪われた者','人間','人狼に襲撃されても死なず、人狼に覚醒する。それまでは村人陣営'],sorcerer:['呪術師','人狼陣営','夜に1人を選び占い師かどうか調べる。人間扱いで占いも人間'],teruteru:['てるてる','第三陣営','処刑されると単独勝利(ゲーム即終了)。占いでは人間と判定される'],kogitsune:['子狐','妖狐陣営','占われても呪殺されないが、襲撃では死ぬ。妖狐が誰か分かる。占いは人間'],lover:['ラバーズ','付与能力','役職とは別枠の追加属性。ランダムな2人1組に付与され(人数は「組数」で指定)、互いが恋人だと分かる。片方が死ぬともう片方も後追い死し、最後に2人だけ残れば恋人の勝利'],thief:['怪盗','人間','1夜目に1人を選び役職を入れ替える(夜明けに成立)。相手は怪盗になる'],knight:['騎士','人間','人狼に襲撃されても1度だけ鎧で耐える(自動発動)'],fanatic:['狂信者','人狼陣営','人狼が誰か知っている。人間扱いで占いも人間'],bigwolf:['大狼','人狼陣営','人狼の仲間。占い・霊能では「人間」と判定される'],baker:['パン屋','人間','生存中は毎朝パンが焼ける。死ぬと焼けなくなり死亡が分かる'],
+niceguesser:['ナイスゲッサー','人間','昼・投票中に1人を指名して役職を言い当てると、その人が死亡。外すと自分が死亡(1回だけ)'],
+evilguesser:['イビルゲッサー','人狼陣営','人狼の仲間で夜の襲撃にも参加。ゲッサー能力で1回だけ役職を当てて殺害できるが、外すと自分が死亡。占い・霊能では「人狼」'],
+modguesser:['モディファイアゲッサー','付与能力','他の役職にゲッサー能力が上乗せされる(役職の人数とは別枠で、人数分ランダムな人に付与)。1回だけ役職を当てて殺害でき、外すと自分が死亡'],
+star:['スター','人間','能力はないが、ゲーム開始時に正体が全員に公開される。村の旗印'],
+evilcat:['イビル猫又','人狼陣営','人狼の仲間で夜の襲撃にも参加。襲撃・処刑で死ぬと、人狼以外の生存者1人を道連れにする。占い・霊能では「人狼」'],
+purelover:['純愛者','人間','夜に1人を選んで恋人になる(1回だけ。すでに恋人がいる人は選べない)。恋人は片方が死ぬともう片方も後追い死し、最後に2人だけ残れば恋人の勝利'],
+god:['神','第三陣営','全員の役職(付与能力・ラバーズも含む)がいつでも分かる。最後まで生存していれば、どの陣営が勝利条件を満たしてもその勝利を乗っ取り、神の単独勝利となる(妖狐よりも優先)。占いでは人間と判定される'],
+cupid:['キューピッド','恋人陣営','夜に2人を選んでラバーズ(恋人)にする(1回だけ。自分と、すでに恋人がいる人は選べない)。恋人になった2人にはキューピッドが誰かは分からない。生存者が恋人2人とキューピッドだけになれば恋人陣営の勝利。恋人が勝利したときに勝利(設定で「最後まで生存していれば勝利」にも変更可)'],
+wolfpossessed:['狼憑き','人間','村人陣営だが、占い・霊能では「人狼」と判定されてしまう'],
+meetsheriff:['ミーティングシェリフ','人間','昼・投票中に1人を指名して撃てる(回数制限あり)。人狼・ジャッカル・妖狐系なら倒せるが、それ以外を撃つと自分が死亡'],
+sage:['賢者','人間','夜に「聖なるバリア」を張れる(回数制限あり)。バリアを張った夜に襲撃されると死なず、襲撃した人狼(またはジャッカル)の1人が代わりに死亡する'],
+libra:['天秤','人間','昼に2人を選ぶ(1回だけ)。その日の投票は2人だけが候補になり、必ずどちらかが処刑される。同票なら2人とも処刑'],
+election:['選挙管理委員','人間','投票のたびに、全員の投票先が本人にだけ分かる'],
+coroner:['警察医','人間','朝に、昨夜の死者の死因(襲撃・呪殺・狙撃・射殺など)が分かる'],
+chief:['村長','人間','夜に1人を任命してシェリフにする(1回だけ)。村人陣営以外を選ぶと任命は無効。人狼を選ぶと村長が死亡する'],
+redhood:['ナイス赤ずきん','人間','襲撃されて死亡しても、襲撃した人が後で死亡すると蘇る(回数制限あり)'],
+mafia:['マフィア','人狼陣営','人狼の仲間。他の人狼が生存している間は襲撃に参加できず、自分だけになると襲撃できる。占い・霊能では「人狼」'],
+blackcat:['黒猫','人狼陣営','人間扱いだが人狼の勝利を目指す。処刑されると、生存者1人を道連れにする。占いは人間'],
+madteru:['マッドてるてる','人狼陣営','人間扱いだが人狼の勝利を目指す。処刑されるとその時点で人狼陣営の勝利になる。占いは人間'],
+frame:['冤罪師','第三陣営','夜に1人へ冤罪をかける(1回だけ)。自分は夜明けに死亡するが、その人が期限内に処刑されれば単独勝利。占いは人間'],
+vulture:['ヴァルチャー','第三陣営','夜に死者の死体を1体喰らえる。設定数を喰らうと単独勝利。占いは人間'],
+jfriend:['ジャッカルフレンズ','第三陣営','ジャッカルの味方の人間(狂人のジャッカル版)。ジャッカルが誰か分かる。ジャッカル陣営が勝てば、自分の生死に関係なく勝利。占いは人間'],
+onmyoji:['陰陽師','第三陣営','人を殺せる者(人狼・ジャッカル・アーソニスト)が誰か分かる。生存者の人数に数えられない。最後まで生き残れば他陣営の勝利を奪う。占いは人間'],
+schro:['シュレディンガーの猫','第三陣営','人狼に襲撃されると人狼として、ジャッカルに襲撃されるとサイドキックとして蘇る。処刑されると村人として蘇る。それ以外で死ぬとそのまま死亡。占いは人間'],
+nicebutton:['ナイスボタナー','人間','昼に1度だけ緊急会議ボタンを押し、すぐに投票を始められる'],
+evilbutton:['イビルボタナー','人狼陣営','人狼の仲間で夜の襲撃にも参加。昼に1度だけ緊急会議ボタンを押し、すぐに投票を始められる。占い・霊能では「人狼」'],
+bomber:['自爆魔','人狼陣営','人狼の仲間で夜の襲撃にも参加。夜に1度だけ自爆し、自分と選んだ1人を死亡させる(護衛・騎士・バリアは無効。妖狐は死なない)。占い・霊能では「人狼」'],
+evilhacker:['イビルハッカー','人狼陣営','人狼の仲間で夜の襲撃にも参加。夜に1度だけ村人陣営の1人を「狂わせて」狂人にできる。占い・霊能では「人狼」'],
+tanuki:['化け狸','人狼陣営','人間扱いだが人狼の勝利を目指す。占い・霊能では「人狼」と判定されてしまう'],
+hitman:['殺し屋','第三陣営','開始時に標的が告げられる。夜に1人を殺害でき(護衛無効)、標的を全員殺せば単独勝利。標的以外を殺すと自分も死亡。占いは人間'],
+oblivion:['忘却者','第三陣営','夜に死者1人を選び、その役職を引き継ぐ(1回だけ)。以後は引き継いだ役職として戦う。占いは人間'],
+moira:['モイラ','第三陣営','昼に2人を選ぶ(1回だけ)と、その日の投票後に2人の役職が入れ替わる。使用後に生き残れば他陣営の勝利を奪う。占いは人間'],
+spelunker:['スペランカー','第三陣営','夜明けごとに一定確率で死亡する。最後まで生き残れば他陣営の勝利を奪う。占いは人間']};
+const PH={lobby:'ロビー',night:'夜',day:'昼(議論)',vote:'投票',end:'終了'};
+const RU0={firstAtk:0,firstSeer:'white',noVote1:0,tie:'none',autoAdv:1,maxP:20,wolfTie:'random',selfGuard:0,consGuard:0,showGuard:0,foxCurse:1,foxWin:1,godWin:1,cupidSurv:0,guessN:1,snipeN:1,knightN:1,recruitN:1,mayorW:2,revealExec:'none',revealNight:'none',mediumOn:1,voteOpen:0,pubRoles:0,nightChat:0,sageN:1,rhN:1,msN:1,frameN:2,vultN:2,onWin:1,hitN:2,spelP:8,stealMS:1,yami:0,yWMin:1,yWMax:3,yTMin:0,yTMax:2};
+const RD=[
+'進行',
+{k:'firstAtk',l:'初日の夜に人狼の襲撃を行う',t:'b'},
+{k:'firstSeer',l:'初日夜の占い',t:'s',o:[['free','通常どおり自由に占う'],['white','ランダムな人間(白)を1人お告げ'],['none','占いなし']]},
+{k:'noVote1',l:'1日目は投票・処刑を行わない',t:'b'},
+{k:'tie',l:'投票が同数のとき',t:'s',o:[['none','処刑なし'],['random','同数の中からランダム'],['revote','決選投票(1回、再び同数なら処刑なし)']]},
+{k:'autoAdv',l:'全員の行動・投票が揃ったら自動で進行',t:'b'},
+{k:'maxP',l:'最大参加人数',t:'n',min:4,max:40},
+'襲撃・護衛',
+{k:'wolfTie',l:'人狼の襲撃先が割れたとき',t:'s',o:[['random','ランダムで決定'],['none','襲撃失敗(誰も死なない)']]},
+{k:'selfGuard',l:'狩人は自分も護衛できる',t:'b'},
+{k:'consGuard',l:'狩人の連続護衛(同じ人を2夜続けて)を禁止',t:'b'},
+{k:'showGuard',l:'護衛成功時に朝のログで知らせる',t:'b'},
+'役職の細かい設定',
+{k:'foxCurse',l:'占われた妖狐を呪殺する',t:'b'},
+{k:'foxWin',l:'妖狐が生存していると他陣営の勝利を奪う',t:'b'},
+{k:'godWin',l:'神が生存していると他陣営の勝利を乗っ取る',t:'b'},
+{k:'cupidSurv',l:'キューピッドは恋人が勝たなくても、最後まで生存していれば勝利する',t:'b'},
+{k:'guessN',l:'ゲッサー能力の使用可能回数',t:'n',min:1,max:5},
+{k:'snipeN',l:'狙撃手の狙撃回数',t:'n',min:1,max:5},
+{k:'knightN',l:'騎士が鎧で耐えられる回数',t:'n',min:1,max:5},
+{k:'recruitN',l:'ジャッカルの勧誘回数',t:'n',min:0,max:3},
+{k:'mayorW',l:'メイヤーの投票の重み(票数)',t:'n',min:1,max:5},
+{k:'msN',l:'ミーティングシェリフの射撃回数',t:'n',min:1,max:3},
+{k:'sageN',l:'賢者のバリア使用回数',t:'n',min:1,max:5},
+{k:'rhN',l:'ナイス赤ずきんの復活回数',t:'n',min:1,max:3},
+{k:'frameN',l:'冤罪師の冤罪が有効な日数(かけた夜の翌日から数える)',t:'n',min:1,max:5},
+{k:'vultN',l:'ヴァルチャーが単独勝利に必要な死体の数',t:'n',min:1,max:5},
+{k:'onWin',l:'陰陽師が生存していると他陣営の勝利を奪う',t:'b'},
+{k:'hitN',l:'殺し屋の標的の人数',t:'n',min:1,max:4},
+{k:'spelP',l:'スペランカーが毎夜死亡する確率(%)',t:'n',min:0,max:50},
+{k:'stealMS',l:'モイラ(能力使用後)・スペランカーが生存していると他陣営の勝利を奪う',t:'b'},
+{k:'mediumOn',l:'霊能者に処刑者の判定(人狼か人間か)を伝える',t:'b'},
+'情報公開',
+{k:'revealExec',l:'処刑された人の情報',t:'s',o:[['none','公開しない'],['wolf','人狼か人間かだけ公開'],['faction','陣営を公開'],['role','役職を公開']]},
+{k:'revealNight',l:'夜に死亡した人の情報',t:'s',o:[['none','公開しない'],['wolf','人狼か人間かだけ公開'],['faction','陣営を公開'],['role','役職を公開']]},
+{k:'voteOpen',l:'誰が誰に投票したかを公開する',t:'b'},
+{k:'pubRoles',l:'配役(役職の内訳)を全員に公開する',t:'b'},
+'チャット',
+{k:'nightChat',l:'夜も全体チャットを許可する',t:'b'},
+'闇鍋モード',
+{k:'yami',l:'闇鍋モード(プールから役職をランダム抽選・配役は非公開)',t:'b'},
+{k:'yWMin',l:'人狼陣営の人数(最小)',t:'n',min:1,max:20},
+{k:'yWMax',l:'人狼陣営の人数(最大)',t:'n',min:1,max:20},
+{k:'yTMin',l:'第三陣営の人数(最小)',t:'n',min:0,max:20},
+{k:'yTMax',l:'第三陣営の人数(最大)',t:'n',min:0,max:20}
+];
+const CATS=[['村人陣営',['villager','seer','medium','hunter','mason','cat','sheriff','mayor','bait','tracker','sniper','poisoner','gravekeeper','cursed','purelover','thief','knight','baker','niceguesser','star','wolfpossessed','meetsheriff','sage','libra','election','coroner','chief','redhood','nicebutton']],['人狼陣営',['werewolf','bigwolf','evilguesser','evilcat','madman','sorcerer','fanatic','mafia','blackcat','madteru','evilbutton','bomber','evilhacker','tanuki']],['第三陣営',['fox','kogitsune','betrayer','jackal','sidekick','opportunist','arsonist','suicidal','teruteru','god','cupid','frame','vulture','jfriend','onmyoji','schro','hitman','oblivion','moira','spelunker']],['付与能力',['modguesser','lover']]];
+const rr=k=>{let v=S&&S.rules&&S.rules[k]!==undefined?S.rules[k]:RU0[k];if(k=='revealExec'||k=='revealNight')v=v===1||v===true?'role':(!v?'none':v);return v},rv=(k,p)=>{const m=rr(k);return m=='role'?`(${R[p.role][0]})`:m=='wolf'?`(${jw(p)?'人狼':'人間'})`:m=='faction'?`(${R[p.role][1]})`:''},wa=()=>S.day>1||rr('firstAtk'),gUsed=p=>(p.gu||0)>=rr('guessN');
+const vt=d=>d.t=='b'?(rr(d.k)?'ON':'OFF'):d.t=='s'?(d.o.find(o=>o[0]==rr(d.k))||['',''])[1]:rr(d.k);
+const compTxt=e=>e.filter(x=>x[1]>0&&R[x[0]]).map(x=>R[x[0]][0]+'×'+x[1]).join('、');
+const plist=()=>`<b>参加者 ${S.players.length}人</b><br>`+S.players.map(x=>esc(x.name)+(isHost&&x.id!=me.id?` <button class=sm onclick="kick('${x.id}')">退室</button>`:'')).join('、');
+const ruleBox=d=>{const v=rr(d.k);return d.t=='b'?`<label class=rl><input type=checkbox ${v?'checked':''} onchange="setR('${d.k}',this.checked?1:0)"> ${d.l}</label>`:d.t=='s'?`<label class=rl>${d.l} <select onchange="setR('${d.k}',this.value)">${d.o.map(o=>`<option value="${o[0]}"${o[0]==v?' selected':''}>${o[1]}</option>`).join('')}</select></label>`:`<label class=rl>${d.l} <input type=number min=${d.min} max=${d.max} style="width:64px" value="${v}" onchange="setR('${d.k}',Math.min(${d.max},Math.max(${d.min},Math.floor(+this.value)||${d.min})))"></label>`};
+const rulesEd=()=>RD.map(d=>typeof d=='string'?`<div style="margin-top:8px"><small><b>${d}</b></small></div>`:ruleBox(d)).join('');
+const tmBox=()=>[['night','夜'],['day','昼'],['vote','投票']].map(([k,l])=>`${l} <input type=number min=0 style="width:64px" value="${(S.T||{})[k]||0}" onchange="setT('${k}',this.value)">`).join(' ');
+const rulesCard=()=>`<details class=card><summary>ルール設定を見る</summary>`+RD.map(d=>typeof d=='string'?`<div style="margin-top:6px"><small><b>${d}</b></small></div>`:`<div><small>${d.l}: <b>${vt(d)}</b></small></div>`).join('')+`<div><small>制限時間: 夜${(S.T||{}).night||'∞'}秒 / 昼${(S.T||{}).day||'∞'}秒 / 投票${(S.T||{}).vote||'∞'}秒</small></div></details>`;
+const totUpd=()=>{cfilter();document.querySelectorAll('.ytot').forEach(e=>{const n=S.players.length,m=Object.keys(R).filter(k=>k!='sidekick'&&k!='modguesser'&&k!='lover').reduce((a,k)=>a+Math.ceil(yp(k)[0]/(k=='lover'||k=='mason'?2:1))*(k=='lover'||k=='mason'?2:1),0);e.innerHTML=`必ず入る役職 ${m}人 / 参加 ${n}人 `+(m>n?'<span style="color:var(--a)">(多すぎます)</span>':'✔')});CATS.forEach(([t,ks],i)=>{const s=ks.reduce((a,k)=>a+(+cfg[k]||0),0);document.querySelectorAll('.fc[data-c="'+i+'"]').forEach(e=>e.textContent=s+'人')});document.querySelectorAll('.tot').forEach(e=>{const t=Object.keys(R).filter(k=>k!='modguesser'&&k!='lover').reduce((a,k)=>a+(+cfg[k]||0),0),n=S.players.length;e.innerHTML=`合計 ${t} / 参加 ${n}人 `+(t==n?'✔':`<span style="color:var(--a)">(${t<n?'あと'+(n-t)+'人分足りません':(t-n)+'人分多すぎます'})</span>`)})};
+const sync=()=>{clearTimeout(syncT);syncT=setTimeout(()=>{S.cfgSh=cfg;save()},400)};
+const setC=(k,v)=>{cfg[k]=Math.max(0,Math.floor(+v)||0);cfgDirty=1;totUpd();sync()};
+const setR=(k,v)=>{S.rules=S.rules||{};S.rules[k]=v;sync();if(k=='yami')render(1)};
+const setT=(k,v)=>{S.T=S.T||{};S.T[k]=Math.max(0,+v||0);S.phase=='lobby'?sync():save()};
+const cAuto=()=>{cfg=autoCfg(S.players.length);cfgN=S.players.length;cfgDirty=0;sync();render(1)};
+const cFill=()=>{const o=Object.keys(cfg).filter(k=>k!='modguesser'&&k!='lover'&&k!='villager').reduce((a,k)=>a+(+cfg[k]||0),0);cfg.villager=Math.max(0,S.players.length-o);cfgDirty=1;sync();render(1)};
+const cClr=()=>{Object.keys(R).forEach(k=>cfg[k]=0);cfgDirty=1;sync();render(1)};
+const psave=()=>{try{localStorage['jinroP'+$('#ps').value]=JSON.stringify({cfg,rules:S.rules,T:S.T,pool:S.pool||{}});alert('保存しました')}catch(e){alert('保存できませんでした')}};
+const pload=()=>{let d=null;try{d=JSON.parse(localStorage['jinroP'+$('#ps').value]||'null')}catch(e){}if(!d){alert('保存データがありません');return}cfg=d.cfg||cfg;S.rules=Object.assign({},RU0,d.rules||{});S.T=d.T||S.T;S.pool=d.pool||S.pool;cfgDirty=1;sync();render(1)};
+const kick=id=>{if(!confirm('この参加者を退室させますか?'))return;S.players=S.players.filter(x=>x.id!=id);(S.ban=S.ban||[]).push(id);save()};
+
+let me={id:localStorage.pid||(localStorage.pid=crypto.randomUUID()),name:localStorage.nm||''},room,S,isHost=false,chats=[],cfg={},cfgN=0,cfgDirty=0,rulesOpen=0,syncT,q=Promise.resolve();
+$('#nm').value=me.name;
+const isW=p=>p&&(p.role=='werewolf'||p.role=='bigwolf'||p.role=='evilguesser'||p.role=='evilcat'||p.role=='mafia'||p.role=='evilbutton'||p.role=='bomber'||p.role=='evilhacker'),foxT=p=>p&&(p.role=='fox'||p.role=='kogitsune'),canG=p=>p&&(p.role=='niceguesser'||p.role=='evilguesser'||p.guesser),jw=p=>p&&['werewolf','evilguesser','evilcat','wolfpossessed','mafia','evilbutton','bomber','evilhacker','tanuki'].includes(p.role),jT=p=>p&&(p.role=='jackal'||p.role=='sidekick'),P=id=>S.players.find(p=>p.id==id), AL=()=>S.players.filter(p=>p.alive),canAtk=p=>isW(p)&&(p.role!='mafia'||!AL().some(x=>x.id!=p.id&&isW(x)));
+const nb=p=>(p.role=='chief'&&!p.used)||(p.role=='frame'&&!p.used)||(p.role=='sage'&&(p.used||0)<rr('sageN'))||(p.role=='vulture'&&S.players.some(x=>!x.alive&&!x.eaten))||(p.role=='bomber'&&!p.used)||(p.role=='evilhacker'&&!p.used)||p.role=='hitman'||(p.role=='oblivion'&&!p.used&&S.players.some(x=>!x.alive));
+let cz={};const lab=(o,n,c)=>{if(o.length>n&&!cz[o[n].id])cz[o[n].id]=c};
+const log=t=>{S.log.push(t);if(S.log.length>300)S.log.splice(0,S.log.length-300)}, pv=(id,t)=>(S.priv[id]=S.priv[id]||[]).push(t);
+let svT=null,svP=[];
+const save=()=>{render();return new Promise(res=>{svP.push(res);if(!svT)svT=setTimeout(async()=>{svT=null;const ps=svP;svP=[];try{await db.from('jinro_rooms').update({state:S}).eq('id',room)}catch(e){console.error(e)}ps.forEach(f=>f())},350)})};
+const act=(type,target)=>db.from('jinro_actions').insert({room,pid:me.id,type,target});
+
+
+const FC=['#4aa3df','#e0556b','#d9a441','#9a93b8'],FI=['👤','🐺','✨','✨'],RI={seer:'🔮',hunter:'🛡️',medium:'👻',werewolf:'🐺',bigwolf:'🐺',fox:'🦊',kogitsune:'🦊',cat:'🐱',evilcat:'🐱',knight:'⚔️',baker:'🍞',jackal:'🐕',sidekick:'🐕',arsonist:'🔥',sniper:'🎯',sheriff:'⭐',villager:'👤',lover:'💕',thief:'🦝',poisoner:'☠️',mayor:'🎩',star:'🌟',teruteru:'☀️',madman:'🤪',niceguesser:'🎯',evilguesser:'🎯',gravekeeper:'⚰️',tracker:'👣',bait:'🪤',cursed:'😈',sorcerer:'🧙',fanatic:'🙏',betrayer:'🥀',opportunist:'🎭',suicidal:'💀',mason:'🤝',wolfpossessed:'🌕',purelover:'💘',god:'👁️',cupid:'🏹',meetsheriff:'🎖️',sage:'🔰',libra:'⚖️',election:'🗳️',coroner:'🩺',chief:'🏛️',redhood:'🧣',mafia:'🕴️',blackcat:'🐈‍⬛',madteru:'🌤️',frame:'📜',vulture:'🦅',jfriend:'🐾',onmyoji:'☯️',schro:'📦',nicebutton:'🔔',evilbutton:'🔔',bomber:'💣',evilhacker:'💻',tanuki:'🍃',hitman:'🔫',oblivion:'🌫️',moira:'🧵',spelunker:'🧗'};
+let facOpen=[],fxK=null,fxP=null,fxA={},fxL=0,fxT;
+const facOf=r=>{const i=CATS.findIndex(c=>c[1].includes(r));return i<0?0:i};
+const fx=(ic,tx,sub,col,ms,cls)=>{const e=$('#fx');clearTimeout(fxT);e.className='on '+(cls||'');e.style.setProperty('--fc',col||'#fff');e.innerHTML=`<div class=fxb><div class=fxi>${ic}</div><div class=fxt>${tx}</div>${sub?`<div class=fxs>${sub}</div>`:''}</div>`;fxT=setTimeout(()=>e.className='',ms||2200)};
+const toast=t=>{const e=document.createElement('div');e.className='toast';e.textContent=t;$('#toast').appendChild(e);setTimeout(()=>e.remove(),4500)};
+const flash=()=>{const e=$('#fx2');e.classList.add('flash');setTimeout(()=>e.classList.remove('flash'),1300)};
+const conf=a=>{const c=$('#fx2');for(let i=0;i<40;i++){const s=document.createElement('span');s.className='cf';s.textContent=a[i%a.length];s.style.cssText=`left:${Math.random()*100}%;animation-duration:${3+Math.random()*3}s;animation-delay:${Math.random()*1.5}s;font-size:${16+Math.random()*18}px`;c.appendChild(s);setTimeout(()=>s.remove(),7500)}};
+const fxApply=ids=>ids.forEach(id=>{const e=document.querySelector(`.p[data-id="${id}"]`);if(e)e.classList.add('diefx')});
+function fxCheck(){
+ const key=S.phase+S.day,al={};S.players.forEach(p=>al[p.id]=p.alive);
+ document.body.className='ph-'+S.phase;let dead=[];
+ if(fxK!==null){
+  if(S.log.length<fxL)fxL=0;
+  const nl=S.log.slice(fxL).filter(x=>!/^(---|\()/.test(x)),nd=S.players.filter(p=>fxA[p.id]&&!p.alive);
+  dead=nd.map(p=>p.id);
+  if(nd.some(p=>p.id==me.id)){toast('💀 あなたは死亡しました(霊界チャットが使えます)');flash();navigator.vibrate&&navigator.vibrate(250)}
+  const ex=nl.filter(x=>/処刑|同票/.test(x)&&!/^投票/.test(x)),gs=nl.filter(x=>x.startsWith('🎯'));
+  if(key!=fxK){
+   if(S.phase=='night'&&fxP=='lobby'){
+    const p=P(me.id);
+    if(p&&p.role){const r=p.role,i=facOf(r);fx(portrait(r,190,1),`あなたは【${R[r][0]}】`,`${R[r][1]}<br>${R[r][2]}`,FC[i],5200,'rv')}
+    else fx('🌙','ゲーム開始','観戦中','#8f9bff',2500,'nightfx')}
+   else if(S.phase=='night'){
+    const go=()=>fx('🌙',`${S.day}日目の夜`,'村が眠りにつく…','#8f9bff',2300,'nightfx');
+    if(ex.length){fx('⚖️',esc(ex[0]),esc(ex.slice(1).join(' ')),'#ff5a6e',2600,'exec');setTimeout(()=>{if(S.phase=='night')go()},2800)}else go()}
+   else if(S.phase=='day'){
+    const t=nl.filter(x=>!/^投票/.test(x)).slice(0,4);
+    fx('☀️',`${S.day}日目の朝`,t.map(esc).join('<br>'),'#ffb347',3800,'dayfx')}
+   else if(S.phase=='vote')fx('🗳️','投票の時間です','誰を処刑するか決めよう','#ff5a6e',2000,'exec');
+   else if(S.phase=='end'){
+    const st=nl.filter(x=>x.startsWith('★')),pre=nl.filter(x=>!x.startsWith('★')&&/処刑|🎯|死亡/.test(x)),ti=(st[0]||'ゲーム終了').replace(/^★\s*/,'');
+    const col=/人狼/.test(ti)?'#ff5a6e':/村人/.test(ti)?'#5db6f5':'#ffcc55';
+    fx('🏆',esc(ti),[...pre,...st.slice(1)].map(esc).join('<br>'),col,6000,'win');
+    conf(/人狼/.test(ti)?['🐺','🌕','🩸']:/村人/.test(ti)?['🎉','✨','🏆']:['✨','⭐','🎊'])}
+  }else if(gs.length)fx('🎯',esc(gs[0]),'','#ffcc55',3200,'exec');
+  else if(ex.length&&S.phase=='vote')toast(ex[0]);
+ }
+ fxK=key;fxP=S.phase;fxA=al;fxL=S.log.length;return dead}
+
+
+function rcounts(){if(!S)return null;if(S.phase=='lobby')return rr('yami')?null:isHost?cfg:(rr('pubRoles')?S.cfgSh:null);return S.comp&&(S.yami?S.phase=='end':(isHost||rr('pubRoles')||S.phase=='end'))?Object.fromEntries(S.comp):null}
+function rlist(){
+ const q=($('#rq').value||'').trim(),c=rcounts(),me_=S&&P(me.id),mine=me_&&me_.role;
+ $('#rlist').innerHTML=CATS.map(([t,ks],i)=>{const m=ks.filter(k=>!q||R[k][0].includes(q)||R[k][1].includes(q)||R[k][2].includes(q));if(!m.length)return'';
+  return`<details class=fac style="border-color:${FC[i]}" open><summary style="color:${FC[i]}"><b>${t}</b></summary>`+m.map(k=>`<div class="ri${k==mine?' me':''}" id="ri-${k}"><b>${RI[k]||FI[i]} ${R[k][0]}</b>${k==mine?'<span class=bdg>あなた</span>':''}${c&&c[k]>0?`<span class=bdg style="background:${FC[i]}">${c[k]}人</span>`:''}<br><small>${R[k][1]}</small><br>${R[k][2]}</div>`).join('')+'</details>'}).join('')||'<div>該当する役職がありません</div>'}
+function roles(k){
+ const m=$('#rm2');if(k===0||(k===undefined&&m.classList.contains('on'))){m.classList.remove('on');return}
+ $('#rq').value='';rlist();m.classList.add('on');
+ const e=typeof k=='string'&&document.getElementById('ri-'+k);if(e)setTimeout(()=>{e.scrollIntoView({block:'center'});e.style.outline='2px solid '+FC[facOf(k)]},50)}
+document.addEventListener('keydown',e=>{if(e.key=='Escape')roles(0)});
+
+
+let cq='';
+function cfilter(){const q=cq.trim();document.querySelectorAll('#cfgpanel .cfg').forEach(e=>{e.style.display=!q||e.dataset.s.includes(q)?'':'none'});
+ document.querySelectorAll('#cfgpanel .fac').forEach(d=>{const v=[...d.querySelectorAll('.cfg')].some(e=>e.style.display!='none');d.style.display=v?'':'none';if(q&&v&&!d.open)d.open=true})}
+const cdump=()=>JSON.stringify({app:'jinro',v:1,cfg:Object.fromEntries(Object.keys(R).filter(k=>cfg[k]>0).map(k=>[k,cfg[k]])),rules:S.rules,T:S.T,pool:S.pool||{}},null,1);
+const cexp=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([cdump()],{type:'application/json'}));a.download='jinro-settings.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
+const ctxt=()=>{const t=$('#jt');t.value=cdump();t.select();try{navigator.clipboard.writeText(t.value)}catch(e){}};
+const cimpf=i=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>cimp(r.result);r.readAsText(f);i.value=''};
+function cimp(t){let d;try{d=JSON.parse(t)}catch(e){alert('設定を読み込めませんでした(JSONの形式が正しくありません)');return}
+ if(!d||typeof d!='object'||(!d.cfg&&!d.rules&&!d.T)){alert('設定データが見つかりません');return}
+ let ig=0;const nc={};Object.keys(R).forEach(k=>nc[k]=0);
+ Object.entries(d.cfg||{}).forEach(([k,v])=>{if(R[k]&&Number.isFinite(+v)&&+v>=0)nc[k]=Math.min(40,Math.floor(+v));else ig++});
+ const nr=Object.assign({},RU0);
+ Object.entries(d.rules||{}).forEach(([k,v])=>{const df=RD.find(x=>x.k==k);if(!df){ig++;return}
+  if(df.t=='b')nr[k]=v?1:0;
+  else if(df.t=='s'){if(df.o.some(o=>o[0]==v))nr[k]=v;else if((k=='revealExec'||k=='revealNight')&&(v===1||v===true))nr[k]='role';else if((k=='revealExec'||k=='revealNight')&&!v)nr[k]='none';else ig++}
+  else{const n=Math.floor(+v);if(Number.isFinite(n))nr[k]=Math.min(df.max,Math.max(df.min,n));else ig++}});
+ const np={};Object.entries(d.pool||{}).forEach(([k,a])=>{if(R[k]&&k!='sidekick'&&Array.isArray(a)&&a.length==3&&a.every(x=>Number.isFinite(+x)&&+x>=0)){const m0=Math.min(40,Math.floor(+a[0]));np[k]=[m0,Math.max(m0,Math.min(40,Math.floor(+a[1]))),Math.min(100,Math.floor(+a[2]))]}else ig++});
+ const nt=Object.assign({night:60,day:180,vote:60},S.T);Object.entries(d.T||{}).forEach(([k,v])=>{if(k in nt&&Number.isFinite(+v)&&+v>=0)nt[k]=Math.floor(+v);else ig++});
+ cfg=nc;S.rules=nr;S.T=nt;if(d.pool)S.pool=np;cfgDirty=1;sync();render(1);alert('設定を読み込みました'+(ig?`(無効な項目${ig}件は無視しました)`:''))}
+
+
+const YP0=k=>k=='villager'?[0,99,100]:k=='werewolf'?[0,3,100]:k=='mason'?[0,2,100]:[0,1,100],yp=k=>(S.pool&&S.pool[k])||YP0(k);
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function poolPick(c,w){const t=c.reduce((s,k)=>s+w(k),0);if(t<=0)return null;let r=Math.random()*t;for(const k of c){r-=w(k);if(r<0)return k}return c[c.length-1]}
+function yamiDraw(n){
+ if(n<4){alert('4人以上で開始してください');return null}
+ const ks=Object.keys(R).filter(k=>k!='sidekick'&&k!='modguesser'&&k!='lover'),u=k=>k=='mason'?2:1,mx=k=>Math.max(yp(k)[0],yp(k)[1]),wt=k=>yp(k)[2];
+ const mins=ks.reduce((s,k)=>s+Math.ceil(yp(k)[0]/u(k))*u(k),0);
+ if(mins>n){alert(`「最小」で必ず入る役職の合計(${mins}人)が参加人数(${n}人)を超えています`);return null}
+ let wMin=Math.max(1,+rr('yWMin')||1),wMax=Math.max(wMin,+rr('yWMax')||wMin),tMin=+rr('yTMin')||0,tMax=Math.max(tMin,+rr('yTMax')||0);
+ wMax=Math.min(wMax,Math.max(1,Math.floor((n-1)/3)));wMin=Math.min(wMin,wMax);tMax=Math.min(tMax,Math.floor(n/3));tMin=Math.min(tMin,tMax);
+ const hub=['werewolf','bigwolf','evilguesser','evilcat'];
+ for(let tr=0;tr<300;tr++){
+  let arr=[],cnt={};const add=k=>{arr.push(k);cnt[k]=(cnt[k]||0)+1},fc=i=>arr.filter(r=>facOf(r)==i).length;
+  ks.forEach(k=>{for(let i=0;i<yp(k)[0];i+=u(k))for(let j=0;j<u(k);j++)add(k)});
+  if(!arr.some(r=>hub.includes(r))){if(arr.length>=n)continue;add(poolPick(hub.filter(k=>(cnt[k]||0)<mx(k)),wt)||'werewolf')}
+  const fill=(i,target)=>{while(fc(i)<target&&arr.length<n){const k=poolPick(ks.filter(k=>facOf(k)==i&&(cnt[k]||0)+u(k)<=mx(k)&&u(k)<=n-arr.length),wt);if(!k)break;for(let j=0;j<u(k);j++)add(k)}};
+  fill(1,ri(wMin,wMax));fill(2,ri(tMin,tMax));fill(0,n);
+  while(arr.length<n)add('villager');
+  if(arr.includes('betrayer')&&!arr.some(r=>r=='fox'||r=='kogitsune'))arr=arr.map(r=>r=='betrayer'?'villager':r);
+  const W=arr.filter(r=>isW({role:r})).length,J=arr.filter(r=>jT({role:r})).length,V=arr.filter(r=>!isW({role:r})&&!jT({role:r})&&!foxT({role:r})&&r!='arsonist'&&r!='onmyoji').length;
+  if(W<1||W>=V+J||(J>0&&J>=V+W))continue;
+  const o={};arr.forEach(r=>o[r]=(o[r]||0)+1);
+  const al_=yp('lover');o.lover=Math.min(n>>1,ri(Math.min(al_[0],al_[1]),Math.max(al_[0],al_[1])));const a=yp('modguesser');o.modguesser=Math.min(n,ri(Math.min(a[0],a[1]),Math.max(a[0],a[1])));
+  return o}
+ alert('条件に合う配役を作れませんでした。人数の範囲や出現役職の設定を見直してください');return null}
+const setP=(k,i,v)=>{S.pool=S.pool||{};const a=[...yp(k)];let x=Math.max(0,Math.floor(+v)||0);x=Math.min(i==2?100:40,x);a[i]=x;if(i==0&&a[1]<a[0])a[1]=a[0];if(i==1&&a[0]>a[1])a[0]=a[1];S.pool[k]=a;sync();render(1)};
+const pAll=m=>{S.pool={};Object.keys(R).forEach(k=>{if(k!='sidekick')S.pool[k]=k=='villager'?[0,99,100]:[0,m?1:0,100]});sync();render(1)};
+const pRst=()=>{S.pool={};sync();render(1)};
+const poolPanel=()=>{let h='<div class=card id=cfgpanel><b>🍲 闇鍋の出現役職</b> <span class=ytot></span><br><small>参加人数に合わせて役職をランダムに抽選します(配役は終了まで非公開)。<b>最小</b>=必ず入る人数、<b>最大</b>=出る上限(0で出ない)、<b>率</b>=抽選されやすさ(付与能力は最小〜最大の範囲でランダム、率は無視)。人数の割合は下の「闇鍋モード」ルールで設定。足りない分は村人で埋まります。</small><br><input id=cs placeholder="役職を検索(名前・陣営・説明)" oninput="cq=this.value;cfilter()" value="'+esc(cq)+'"><br><button class=sm onclick="pAll(1)">全て最大1</button><button class=sm onclick="pAll(0)">全て出さない</button><button class=sm onclick="pRst()">初期値に戻す</button>';
+ CATS.forEach(([t,ks],i)=>{h+=`<details class=fac style="border-color:${FC[i]}" ${facOpen[i]===0?'':'open'} ontoggle="facOpen[${i}]=this.open?1:0"><summary style="color:${FC[i]}"><b>${t}</b></summary>`+ks.filter(k=>k!='sidekick').map(k=>{const a=yp(k);return`<span class="cfg yp" data-s="${R[k][0]} ${R[k][1]} ${R[k][2]}" title="${R[k][2]}"><b>${R[k][0]}${k=='lover'?'(組)':''}</b> 最小<input type=number min=0 value="${a[0]}" onchange="setP('${k}',0,this.value)"> 最大<input type=number min=0 value="${a[1]}" onchange="setP('${k}',1,this.value)"> 率<input type=number min=0 max=100 value="${a[2]}" onchange="setP('${k}',2,this.value)">%</span>`}).join('')+'</details>'});
+ return h+'</div>'};
+
+let gsel='villager';
+function cact(t,id,m){if(confirm(m))act(t,id)}
+function guess(id){act('guess',id+':'+gsel)}
+async function enter(){
+ me.name=$('#nm').value.trim();room=$('#rm').value.trim();if(!me.name||!room)return;localStorage.nm=me.name;
+ let{data,error}=await db.from('jinro_rooms').select('state,updated_at').eq('id',room).maybeSingle();
+ if(error){alert('Supabase接続エラー: '+error.message);return}
+ const stale=data&&data.updated_at&&Date.now()-new Date(data.updated_at)>TTL;
+ if(!data||stale){S={host:me.id,phase:'lobby',day:0,players:[{id:me.id,name:me.name,alive:true}],log:[],priv:{},night:{},votes:{},chatFrom:new Date().toISOString()};
+  const r=stale?await db.from('jinro_rooms').update({state:S}).eq('id',room):await db.from('jinro_rooms').insert({id:room,state:S});
+  if(r.error){alert('部屋を作成できませんでした: '+(r.error.message=='rate_limited'?'混み合っています。少し待ってからお試しください':r.error.message));return}}
+ else S=data.state;
+ isHost=S.host==me.id;S.T=S.T||{night:60,day:180,vote:60};S.rules=Object.assign({},RU0,S.rules||{});if(isHost&&S.cfgSh){cfg=S.cfgSh;cfgDirty=1;cfgN=S.players.length}
+ let cq=db.from('jinro_chat').select('*').eq('room',room);if(S.chatFrom)cq=cq.gte('created_at',S.chatFrom);const{data:old}=await cq.order('id',{ascending:false}).limit(60);chats=(old||[]).reverse();
+ db.channel('r-'+room)
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'jinro_rooms',filter:`id=eq.${room}`},e=>{if(!isHost){S=e.new.state;if(S.chatFrom&&chats.some(c=>c.created_at<S.chatFrom)){chats=chats.filter(c=>c.created_at>=S.chatFrom);drawChat()}render()}})
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'jinro_actions',filter:`room=eq.${room}`},e=>{if(isHost)q=q.then(()=>handle(e.new)).catch(console.error)})
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'jinro_chat',filter:`room=eq.${room}`},e=>{chats.push(e.new);drawChat()}).subscribe();
+ if(!P(me.id)&&S.phase=='lobby')act('join',me.name);
+ tickH=setInterval(tick,1000);$('#top').style.display='none';$('#chat').style.display='';render();
+}
+
+// ---- ホスト側ゲームエンジン ----
+async function handle(a){
+ const p=P(a.pid),t=a.target,N=S.night,tp=P(t);
+ if(a.type=='guess')doGuess(p,t);
+ else if(a.type=='mshoot')doShoot(p,t);
+ else if(a.type=='libra')doLibra(p,t);
+ else if(a.type=='button')doButton(p);
+ else if(a.type=='moira')doMoira(p,t);
+ else if(a.type=='join'){if(S.phase=='lobby'&&!p&&S.players.length<rr('maxP')&&!(S.ban||[]).includes(a.pid))S.players.push({id:a.pid,name:t,alive:true})}
+ else if(S.phase=='night'&&p?.alive&&(a.type=='pass'||a.type=='ignite')){if(a.type=='ignite'&&p.role=='arsonist'){N.ignite=1;(N.done=N.done||{})[a.pid]=1}if(a.type=='pass'&&(p.role=='arsonist'||(p.role=='jackal'&&S.day>1)||((p.role=='purelover'&&!p.pl)||(p.role=='cupid'&&!p.cu))||nb(p)))(N.done=N.done||{})[a.pid]=1}
+ else if(S.phase=='night'&&p?.alive&&a.type=='barrier'){if(p.role=='sage'&&(p.used||0)<rr('sageN')&&!(N.bar||{})[a.pid]){(N.bar=N.bar||{})[a.pid]=1;p.used=(p.used||0)+1;(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: 聖なるバリアを張った(残り${rr('sageN')-p.used}回)`)}}
+ else if(S.phase=='night'&&p?.alive&&a.type=='recall'){if(p.role=='oblivion'&&!p.used&&tp&&!tp.alive){p.used=1;N.recall={by:a.pid,t};(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} の役職を引き継ぐことにした(夜明けに成立)`)}}
+ else if(S.phase=='night'&&p?.alive&&a.type=='eat'){if(p.role=='vulture'&&tp&&!tp.alive&&!tp.eaten){(N.eats=N.eats||{})[a.pid]=t;(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} の死体を喰らうことにした`)}}
+ else if(S.phase=='night'&&p?.alive&&tp?.alive){(N.acts=N.acts||{})[a.pid]=t;
+  if(a.type=='wolf'&&canAtk(p)&&wa()&&!isW(tp))N.wolf[a.pid]=t;
+  if(a.type=='seer'&&p.role=='seer'&&!N.seer&&t!=a.pid&&(S.day>1||rr('firstSeer')=='free')){N.seer=t;pv(a.pid,`${S.day}夜目: ${tp.name} は【${jw(tp)?'人狼':'人間'}】でした`)}
+  if(a.type=='guard'&&p.role=='hunter'&&(t!=a.pid||rr('selfGuard'))&&!(rr('consGuard')&&t==S.lastGuard))N.guard=t;
+  if(a.type=='steal'&&p.role=='thief'&&S.day==1&&!N.thief&&t!=a.pid&&tp.role!='star'){N.thief=t;N.thiefBy=a.pid;pv(a.pid,'入れ替え先に '+tp.name+' を選びました(夜明けに成立)')}
+  if(a.type=='snipe'&&p.role=='sniper'&&S.day>1&&(p.used||0)<rr('snipeN')&&!(N.sn||{})[a.pid]&&t!=a.pid){(N.sn=N.sn||{})[a.pid]=t;p.used=(p.used||0)+1;pv(a.pid,`${S.day}夜目: ${tp.name} を狙撃した`)}
+  if(a.type=='jackal'&&p.role=='jackal'&&S.day>1&&!N.done?.[a.pid]&&t!=a.pid&&!jT(tp)){N.jk=t;N.jkBy=a.pid;(N.done=N.done||{})[a.pid]=1}
+  if(a.type=='recruit'&&p.role=='jackal'&&S.day>1&&!N.done?.[a.pid]&&(S.recruited||0)<rr('recruitN')&&t!=a.pid){N.rec=t;(N.done=N.done||{})[a.pid]=1}
+  if(a.type=='douse'&&p.role=='arsonist'&&!N.douse&&t!=a.pid){N.douse=t;tp.oil=1;(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} に油を塗った`)}
+  if(a.type=='sheriff'&&p.role=='sheriff'&&S.day>1&&t!=a.pid&&!(N.shots||[]).some(x=>x.by==a.pid))(N.shots=N.shots||[]).push({by:a.pid,t});
+  if(a.type=='track'&&p.role=='tracker'&&t!=a.pid&&!(N.track||{})[a.pid])(N.track=N.track||{})[a.pid]=t;
+  if(a.type=='love'&&p.role=='purelover'&&!p.pl&&!N.love&&!p.lover&&!tp.lover&&t!=a.pid){N.love={by:a.pid,t};(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} を恋人に選んだ(夜明けに成立)`)}
+  if(a.type=='cupid'&&p.role=='cupid'&&!p.cu&&t!=a.pid&&!tp.lover){N.cp=N.cp||[];const i=N.cp.indexOf(t);if(i>=0)N.cp.splice(i,1);else{if(N.cp.length>=2)N.cp.shift();N.cp.push(t)}N.cpBy=a.pid;if(N.cp.length==2)(N.done=N.done||{})[a.pid]=1;else if(N.done)delete N.done[a.pid]}
+  if(a.type=='sorc'&&p.role=='sorcerer'&&!N.sorc&&t!=a.pid){N.sorc=t;pv(a.pid,`${S.day}夜目: ${tp.name} は【${tp.role=='seer'?'占い師':'占い師ではない'}】`)}
+  if(a.type=='bomb'&&p.role=='bomber'&&!p.used&&t!=a.pid&&!isW(tp)){p.used=1;N.bomb={by:a.pid,t};(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} を道連れに自爆する(夜明けに成立)`)}
+  if(a.type=='madden'&&p.role=='evilhacker'&&!p.used&&t!=a.pid&&!isW(tp)){p.used=1;N.mad={by:a.pid,t};(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} を狂わせることにした(夜明けに成立)`)}
+  if(a.type=='hit'&&p.role=='hitman'&&t!=a.pid){(N.hit=N.hit||{})[a.pid]=t;(N.done=N.done||{})[a.pid]=1}
+  if(a.type=='appoint'&&p.role=='chief'&&!p.used&&t!=a.pid){p.used=1;(N.ap=N.ap||{})[a.pid]=t;(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} を任命した(夜明けに成立)`)}
+  if(a.type=='frame'&&p.role=='frame'&&!p.used&&t!=a.pid){p.used=1;N.frame={by:a.pid,t};(N.done=N.done||{})[a.pid]=1;pv(a.pid,`${S.day}夜目: ${tp.name} に冤罪をかけた(夜明けに自決します)`)}
+ }else if(a.type=='vote'&&S.phase=='vote'&&p?.alive&&tp?.alive&&t!=a.pid&&(!S.rc||S.rc.includes(t)))S.votes[a.pid]=t;
+ progress();await save();
+}
+function doGuess(p,t){
+ const[id,role]=String(t).split(':'),tp=P(id);
+ if(!p||!p.alive||gUsed(p)||!canG(p)||!tp||!tp.alive||id==p.id||!R[role]||role=='modguesser'||role=='lover'||!['day','vote'].includes(S.phase))return;
+ p.gu=(p.gu||0)+1;let o;
+ if(tp.role==role){log(`🎯 ${p.name} が ${tp.name} の役職を【${R[role][0]}】と言い当てた！ ${tp.name} は死亡した。`);o=kill(tp.id)}
+ else{log(`🎯 ${p.name} が ${tp.name} を【${R[role][0]}】と推理したが外れ、自らも命を落とした。`);o=kill(p.id)}
+ if(o.length>1)log('巻き添え: '+o.slice(1).map(x=>x.name).join('、'));
+ betray(o);
+ Object.keys(S.votes).forEach(k=>{if(!P(k).alive||!P(S.votes[k]).alive)delete S.votes[k]});
+ revive();win()}
+function doShoot(p,t){
+ const tp=P(t);if(!p||!p.alive||p.role!='meetsheriff'||(p.ms||0)>=rr('msN')||!tp||!tp.alive||t==p.id||!['day','vote'].includes(S.phase))return;
+ p.ms=(p.ms||0)+1;let o;
+ if(isW(tp)||jT(tp)||foxT(tp)){log(`🎯 ${p.name} が ${tp.name} を撃ち抜いた！ ${tp.name} は死亡した。`);o=kill(tp.id)}
+ else{log(`🎯 ${p.name} が ${tp.name} を撃ったが、人外ではなかった。${p.name} は命を落とした。`);o=kill(p.id)}
+ if(o.length>1)log('巻き添え: '+o.slice(1).map(x=>x.name).join('、'));
+ betray(o);Object.keys(S.votes).forEach(k=>{if(!P(k).alive||!P(S.votes[k]).alive)delete S.votes[k]});
+ revive();win()}
+function doLibra(p,t){
+ const tp=P(t);if(S.phase!='day'||!p||!p.alive||p.role!='libra'||p.lu||S.libra||!tp||!tp.alive||t==p.id)return;
+ const s=p.lb=p.lb||[],i=s.indexOf(t);if(i>=0)s.splice(i,1);else s.push(t);
+ if(s.length==2){p.lu=1;S.libra=s.slice();delete p.lb;pv(p.id,`天秤: ${P(s[0]).name} と ${P(s[1]).name} を選んだ(次の投票に反映されます)`)}}
+function doButton(p){if(S.phase!='day'||!p||!p.alive||(p.role!='nicebutton'&&p.role!='evilbutton')||p.bu)return;p.bu=1;log('🔔 緊急会議ボタンが押された！ すぐに投票に移ります。');toVote()}
+function doMoira(p,t){const tp=P(t);if(S.phase!='day'||!p||!p.alive||p.role!='moira'||p.mu||S.moiraP||!tp||!tp.alive||t==p.id)return;const s=p.mb=p.mb||[],i=s.indexOf(t);if(i>=0)s.splice(i,1);else s.push(t);if(s.length==2){p.mu=1;S.moiraP=s.slice();delete p.mb;pv(p.id,`モイラ: ${P(s[0]).name} と ${P(s[1]).name} を選んだ(今日の投票後に入れ替わります)`)}}
+function revive(){
+ S.players.filter(p=>p.role=='redhood'&&!p.alive&&p.rhBy&&p.rhBy.length&&(p.rh||0)<rr('rhN')&&p.rhBy.some(k=>P(k)&&!P(k).alive)).forEach(p=>{p.alive=true;p.rh=(p.rh||0)+1;p.rhBy=null;log(`🧣 ${p.name} が、襲撃者の死を見届けて蘇った！`);pv(p.id,'あなたは蘇った(赤ずきんの復活)')})}
+function progress(){
+ if(S.phase=='night'){const N=S.night,al=AL();
+  const ok=al.filter(p=>p.role=='arsonist'||(p.role=='jackal'&&S.day>1)||((p.role=='purelover'&&!p.pl)||(p.role=='cupid'&&!p.cu))||nb(p)).every(p=>N.done?.[p.id])&&(!al.some(p=>p.role=='thief')||S.day>1||N.thief)&&(!al.some(p=>p.role=='seer')||N.seer||(S.day==1&&rr('firstSeer')!='free'))&&(!wa()||(al.filter(canAtk).every(p=>N.wolf[p.id])&&(!al.some(p=>p.role=='hunter')||N.guard)));
+  if(ok&&rr('autoAdv'))dawn()}
+ if(S.phase=='vote'&&rr('autoAdv')&&AL().every(p=>S.votes[p.id]))tally();
+}
+function ph(x){S.phase=x;const t=(S.T||{})[x];S.deadline=t?Date.now()+t*1000:null}
+function hit(id,o,w){const p=P(id);if(!p||!p.alive||id==S.night.guard||p.role=='fox')return;
+ if(p.role=='knight'&&(p.used||0)<rr('knightN')){p.used=(p.used||0)+1;pv(id,`${S.day}夜目: 襲撃されたが鎧で耐えた(鎧は消滅)`);return}
+ if(p.role=='sage'&&(S.night.bar||{})[id]){const ks=(w?Object.keys(S.night.wolf||{}).filter(k=>S.night.wolf[k]==id):[S.night.jkBy]).filter(k=>k&&P(k)&&P(k).alive);if(ks.length){const k=ks[Math.random()*ks.length|0];pv(id,`バリアが襲撃を跳ね返し、${P(k).name} が死亡した`);const n0=o.length;o.push(...kill(k));lab(o,n0,'反射(バリア)')}else pv(id,'バリアが襲撃を防いだ');return}
+ if(p.role=='schro'){
+  if(w){p.role='werewolf';pv(id,'人狼に襲撃され、人狼として蘇った！ 仲間: '+S.players.filter(isW).map(x=>x.name).join('、'));S.players.filter(x=>isW(x)&&x.id!=id).forEach(x=>pv(x.id,p.name+' が襲撃され、人狼の仲間になった'));return}
+  const jk=AL().find(x=>x.role=='jackal');if(jk){p.role='sidekick';pv(id,'ジャッカルに襲撃され、サイドキックとして蘇った。ジャッカル: '+jk.name);pv(jk.id,p.name+' が襲撃され、サイドキックになった');return}}
+ if(w&&p.role=='cursed'){p.role='werewolf';pv(id,'人狼に襲撃され、人狼に覚醒した！ 仲間: '+S.players.filter(isW).map(x=>x.name).join('、'));S.players.filter(x=>isW(x)&&x.id!=id).forEach(x=>pv(x.id,p.name+' が襲撃され、人狼に覚醒した'));return}
+ if(p.role=='redhood'&&(p.rh||0)<rr('rhN'))p.rhBy=(w?Object.keys(S.night.wolf||{}).filter(k=>S.night.wolf[k]==id):[S.night.jkBy]).filter(Boolean);
+ o.push(...kill(id))}
+function kill(id){const p=P(id);if(!p||!p.alive)return[];p.alive=false;let o=[p];if(p.role=='jackal'){const sk=AL().find(x=>x.role=='sidekick');if(sk){sk.role='jackal';pv(sk.id,'ジャッカルが死亡し、あなたが【ジャッカル】になった')}}if(p.lover&&P(p.lover).alive)o.push(...kill(p.lover));
+ if(p.role=='cat'||p.role=='evilcat'){let c=AL();if(p.role=='evilcat'){const nw=c.filter(x=>!isW(x));if(nw.length)c=nw}if(c.length)o=o.concat(kill(c[Math.random()*c.length|0].id))}return o}
+function betray(o){if(!AL().some(foxT))AL().filter(p=>p.role=='betrayer').forEach(b=>o.push(...kill(b.id)))}
+function dawn(){
+ if(S.night.thief){const th=P(S.night.thiefBy),tg=P(S.night.thief);th.role=tg.role;tg.role='thief';
+  pv(th.id,`1夜目: ${tg.name} と入れ替わり、あなたは【${R[th.role][0]}】になった`+(isW(th)?' 人狼の仲間: '+S.players.filter(isW).map(p=>p.name).join('、'):''))}
+ const N=S.night,c={};let t=null,m=0;cz={};Object.values(N.wolf||{}).forEach(x=>c[x]=(c[x]||0)+1);
+ if(N.love){const a=P(N.love.by),b=P(N.love.t);if(a&&b&&a.alive&&b.alive&&!a.lover&&!b.lover){a.lover=b.id;b.lover=a.id;a.pl=1;pv(a.id,`恋人が成立しました。恋人: ${b.name}`);pv(b.id,`あなたは純愛者 ${a.name} の恋人になりました。恋人: ${a.name}`)}}
+ if(N.cp&&N.cp.length==2){const cu=P(N.cpBy),a=P(N.cp[0]),b=P(N.cp[1]);if(cu&&a&&b&&a.alive&&b.alive&&!a.lover&&!b.lover){a.lover=b.id;b.lover=a.id;cu.cu=1;pv(a.id,`キューピッドの矢が刺さり、ラバーズ(恋人)になりました。恋人: ${b.name}`);pv(b.id,`キューピッドの矢が刺さり、ラバーズ(恋人)になりました。恋人: ${a.name}`);pv(cu.id,`${a.name} と ${b.name} をラバーズにしました`)}}
+ let gs=0;S.lastGuard=N.guard||null;{const mx=Math.max(0,...Object.values(c)),ks=Object.keys(c).filter(k=>c[k]==mx);t=ks.length?(ks.length>1&&rr('wolfTie')=='none'?null:ks[Math.random()*ks.length|0]):null}
+ let o=[];
+ if(N.rec){const tg=P(N.rec),jk=AL().find(x=>x.role=='jackal');S.recruited=(S.recruited||0)+1;
+  if(jk&&tg&&tg.alive&&!isW(tg)&&!foxT(tg)&&tg.role!='arsonist'){tg.role='sidekick';pv(tg.id,'あなたはジャッカルに勧誘され【サイドキック】になった。ジャッカル: '+jk.name);pv(jk.id,tg.name+' をサイドキックにした')}else if(jk)pv(jk.id,'勧誘に失敗した')}
+ Object.entries(N.ap||{}).forEach(([cid,tid])=>{const ch=P(cid),tg=P(tid);if(!ch||!tg||!ch.alive||!tg.alive)return;
+  if(isW(tg)){const n0=o.length;o.push(...kill(cid));lab(o,n0,'任命失敗');pv(cid,'任命した相手は人狼だった…あなたは死亡した')}
+  else if(facOf(tg.role)==0&&tg.role!='sheriff'){tg.role='sheriff';pv(tid,'村長に任命され、あなたは【シェリフ】になった');pv(cid,tg.name+' の任命が成立した')}});
+ if(N.frame){const fr=P(N.frame.by),tg=P(N.frame.t);if(fr&&fr.alive&&tg&&tg.alive){(S.frames=S.frames||[]).push({t:tg.id,d:S.day,by:fr.name});const n0=o.length;o.push(...kill(fr.id));lab(o,n0,'自決');pv(fr.id,`${tg.name} に冤罪をかけ、自決した(期限内にその人が処刑されれば単独勝利)`)}}
+ Object.entries(N.eats||{}).forEach(([vid,tid])=>{const vu=P(vid),tg=P(tid);if(!vu||!vu.alive||!tg||tg.alive||tg.eaten)return;tg.eaten=1;vu.eat=(vu.eat||0)+1;pv(vid,`${tg.name} の死体を喰らった(合計${vu.eat}/${rr('vultN')})`)});
+ if(N.recall){const ob=P(N.recall.by),tg=P(N.recall.t);if(ob&&ob.alive&&tg&&!tg.alive&&tg.role!='oblivion'){const nr=tg.role;ob.role=nr;pv(ob.id,`${S.day}夜目: ${tg.name} の役職を引き継ぎ、あなたは【${R[nr][0]}】になった`+(isW(ob)?' 人狼の仲間: '+S.players.filter(isW).map(x=>x.name).join('、'):''));if(isW(ob))S.players.filter(x=>isW(x)&&x.id!=ob.id).forEach(x=>pv(x.id,ob.name+' が人狼の仲間に加わった'))}}
+ if(N.mad){const eh=P(N.mad.by),tg=P(N.mad.t);if(eh&&eh.alive&&tg&&tg.alive&&facOf(tg.role)==0){tg.role='madman';pv(tg.id,'人狼陣営に狂わされ、あなたは【狂人】になった');pv(eh.id,tg.name+' を狂わせた')}else if(eh)pv(eh.id,'狂わせることはできなかった')}
+ Object.entries(N.hit||{}).forEach(([hid,tid])=>{const h=P(hid),tg=P(tid);if(!h||!h.alive||!tg||!tg.alive||tg.role=='fox')return;const n0=o.length;o.push(...kill(tid));lab(o,n0,'殺害');if((h.tg||[]).includes(tid)){h.hk=(h.hk||0)+1;h.tg=h.tg.filter(x=>x!=tid);pv(hid,`標的 ${tg.name} を殺害した(${h.hk}/${h.tn})`)}else{const n1=o.length;o.push(...kill(hid));lab(o,n1,'標的外の殺害')}});
+ if(N.bomb){const bm=P(N.bomb.by),tg=P(N.bomb.t);if(bm&&bm.alive){if(tg&&tg.alive&&tg.role!='fox'){const n0=o.length;o.push(...kill(tg.id));lab(o,n0,'爆死')}const n1=o.length;o.push(...kill(bm.id));lab(o,n1,'自爆')}}
+ if(t&&wa()){if(t==N.guard&&P(t)?.alive&&P(t).role!='fox')gs=1;const n0=o.length;hit(t,o,1);lab(o,n0,'襲撃')}
+ if(N.jk){const n0=o.length;hit(N.jk,o,0);lab(o,n0,'襲撃')}
+ if(N.seer&&rr('foxCurse')&&P(N.seer).role=='fox'){const n0=o.length;o.push(...kill(N.seer));lab(o,n0,'呪殺')}
+ Object.values(N.sn||{}).forEach(x=>{if(P(x)&&P(x).alive){const n0=o.length;o.push(...kill(x));lab(o,n0,'狙撃')}});
+ (N.shots||[]).forEach(x=>{const by=P(x.by),tg=P(x.t);if(by.alive&&tg.alive){{const n0=o.length;if(isW(tg)||jT(tg)||foxT(tg)){o.push(...kill(tg.id));lab(o,n0,'射殺')}else{o.push(...kill(by.id));lab(o,n0,'誤射')}}}});
+ if(N.ignite)AL().filter(p=>p.oil).forEach(p=>{const n0=o.length;o.push(...kill(p.id));lab(o,n0,'焼死')});
+ AL().filter(p=>p.role=='spelunker').forEach(p=>{if(Math.random()*100<rr('spelP')){const n0=o.length;o.push(...kill(p.id));lab(o,n0,'衰弱死')}});
+ betray(o);
+ AL().filter(g=>g.role=='coroner').forEach(g=>pv(g.id,`${S.day}日目: 昨夜の死因 → `+(o.length?o.map(p=>p.name+'='+(cz[p.id]||'後追い・道連れ')).join('、'):'なし')));
+ AL().filter(g=>g.role=='gravekeeper').forEach(g=>pv(g.id,`${S.day}日目: 昨夜の死者 → `+(o.length?o.map(p=>p.name+'='+R[p.role][0]).join('、'):'なし')));
+ log(`--- ${S.day}日目の朝 ---`);if(gs&&rr('showGuard'))log('🛡 狩人の護衛が成功し、襲撃は防がれました。');
+ log(o.length?`${o.map(p=>p.name+rv('revealNight',p)).join('、')} が死亡しました。`:'昨夜の犠牲者はいませんでした。');
+ o.filter(p=>p.role=='bait'&&p.id==t).forEach(b=>{const vs=Object.keys(N.wolf||{}).filter(k=>N.wolf[k]==b.id);if(vs.length)log(`${b.name} は死の間際に ${P(vs[Math.random()*vs.length|0]).name} の名を叫んだ…`)});
+ Object.entries(N.track||{}).forEach(([tid,tg])=>{if(P(tid)?.alive)pv(tid,`${S.day}夜目: ${P(tg).name} の夜の行動 → `+(N.acts?.[tg]&&P(N.acts[tg])?P(N.acts[tg]).name:'誰にも行動しなかった'))});
+ if(S.players.some(p=>p.role=='baker'))log(AL().some(p=>p.role=='baker')?'パンの焼けるいい香りがする。':'今朝はパンが焼けなかった…パン屋が死んだようだ。');
+ if(S.lastExec&&rr('mediumOn'))AL().filter(p=>p.role=='medium').forEach(md=>pv(md.id,`${S.day}日目: 昨日処刑された ${P(S.lastExec).name} は【${jw(P(S.lastExec))?'人狼':'人間'}】でした`));
+ S.lastExec=null;ph('day');S.votes={};revive();AL().filter(h=>h.role=='hitman').forEach(h=>{const k=(h.tg||[]).filter(id=>P(id)&&P(id).alive);h.tn=(h.tn||0)-((h.tg||[]).length-k.length);h.tg=k});const hw=AL().find(p=>p.role=='hitman'&&(p.tn||0)>0&&(p.hk||0)>=p.tn);const vw=AL().find(p=>p.role=='vulture'&&(p.eat||0)>=rr('vultN'));if(o.some(p=>p.role=='suicidal')){S.phase='end';S.deadline=null;log('★ 自殺願望者が夜に死亡！【自殺願望者の単独勝利】')}else if(hw){S.phase='end';S.deadline=null;log(`★ ${hw.name} が全ての標的を仕留めた！【殺し屋の単独勝利】`)}else if(vw){S.phase='end';S.deadline=null;log(`★ ${vw.name} が死体を喰らい尽くした！【ヴァルチャーの単独勝利】`)}else win();
+}
+function tally(){
+ const c={};Object.entries(S.votes).forEach(([v,x])=>c[x]=(c[x]||0)+(P(v)?.role=='mayor'?rr('mayorW'):1));let mx=0,ids=[];
+ for(const k in c){if(c[k]>mx){mx=c[k];ids=[k]}else if(c[k]==mx)ids.push(k)}
+ log('投票結果: '+Object.entries(c).map(([k,v])=>`${P(k).name}:${v}票`).join(' '));
+ if(rr('voteOpen'))log('投票先: '+Object.entries(S.votes).map(([v,x])=>`${P(v).name}→${P(x).name}`).join('、'));
+ AL().filter(e=>e.role=='election').forEach(e=>pv(e.id,`${S.day}日目の投票先: `+(Object.entries(S.votes).map(([v,x])=>`${P(v).name}→${P(x).name}`).join('、')||'なし')));
+ const lb=S.libraOn?(S.rc||[]).filter(k=>P(k)?.alive):null;
+ if(lb){if(!ids.length&&lb.length)ids=[lb[Math.random()*lb.length|0]];else if(ids.length>1)ids=ids.filter(k=>lb.includes(k));if(ids.length>1)log('⚖️ 天秤の効果で、同票の2人がそろって処刑されます。')}
+ else{
+  if(ids.length>1&&rr('tie')=='revote'&&!S.rc2){S.rc2=1;S.rc=ids.slice();S.votes={};log('同票のため決選投票を行います: '+ids.map(k=>P(k).name).join('、'));ph('vote');return}
+  if(ids.length>1&&rr('tie')=='random'){ids=[ids[Math.random()*ids.length|0]];log('同数のためランダムに決定されました。')}}
+ S.rc=null;S.rc2=0;S.libraOn=0;
+ let o=[];
+ if(ids.length==1||(lb&&ids.length)){ids.forEach(id=>{const e=P(id);if(!e||!e.alive)return;const lb0=rv('revealExec',e);
+  if(e.role=='schro'){e.role='villager';S.lastExec=id;log(`${e.name}${lb0} が処刑された…が、不思議な力で村人として蘇った！`);return}
+  const oo=kill(id);S.lastExec=id;betray(oo);
+  if(e.role=='teruteru')S.tt=1;if(e.role=='madteru')S.mt=1;
+  if(e.role=='poisoner'){const vs=Object.keys(S.votes).filter(k=>S.votes[k]==id&&P(k)?.alive);if(vs.length){oo.push(...kill(vs[Math.random()*vs.length|0]));betray(oo)}}
+  if(e.role=='blackcat'){const cs=AL();if(cs.length){oo.push(...kill(cs[Math.random()*cs.length|0].id));betray(oo)}}
+  o.push(...oo);
+  log(`${e.name}${lb0} が処刑されました。`+(oo.length>1?` 道連れ/後追い: ${oo.slice(1).map(p=>p.name).join('、')}`:''))})}
+ else log('同票のため処刑は行われませんでした。');
+ revive();
+ if(S.moiraP){const a=P(S.moiraP[0]),b=P(S.moiraP[1]);S.moiraP=null;if(a&&b&&a.alive&&b.alive){const ra=a.role;a.role=b.role;b.role=ra;[a,b].forEach(x=>{pv(x.id,`モイラの力で役職が入れ替わり、あなたは【${R[x.role][0]}】になった`+(isW(x)?' 人狼の仲間: '+S.players.filter(isW).map(y=>y.name).join('、'):''));if(isW(x))S.players.filter(y=>isW(y)&&y.id!=x.id).forEach(y=>pv(y.id,x.name+' が人狼の仲間に加わった'))});log('🧵 誰かの役職が入れ替わった…')}}
+ const fh=(S.frames||[]).find(f=>ids.includes(f.t)&&P(f.t)&&!P(f.t).alive&&S.day-f.d<rr('frameN'));
+ if(S.tt){S.tt=0;S.votes={};S.phase='end';S.deadline=null;log('★ てるてるが処刑されました！【てるてるの単独勝利】');return}
+ if(S.mt){S.mt=0;S.votes={};S.phase='end';S.deadline=null;log('★ マッドてるてるが処刑されました！【人狼陣営の勝利】');return}
+ if(fh){S.votes={};S.phase='end';S.deadline=null;log(`★ 冤罪をかけられた ${P(fh.t).name} が処刑された！【冤罪師(${fh.by})の単独勝利】`);return}
+ S.votes={};if(!win()){ph('night');S.day++;S.night={wolf:{}}}
+}
+function win(){
+ const al=AL(),cnt=f=>al.filter(f).length,W=cnt(isW),J=cnt(jT),A=cnt(p=>p.role=='arsonist'),V=cnt(p=>!isW(p)&&!jT(p)&&!foxT(p)&&p.role!='arsonist'&&p.role!='god'&&p.role!='onmyoji'),fox=al.some(foxT),god=al.some(p=>p.role=='god'),oy=al.some(p=>p.role=='onmyoji'),mp=al.find(p=>(p.role=='moira'&&p.mu)||p.role=='spelunker');
+ let r=null;
+ if(!al.length)r='なし(全滅・引き分け)';
+ else if(al.length==1&&al[0].role=='arsonist')r='アーソニスト(単独)';
+ else if(al.filter(p=>p.role!='cupid').length==2&&al.filter(p=>p.role!='cupid').every(p=>p.lover))r='恋人';
+ else if(A>0&&V==0&&W==0&&J==0)r='アーソニスト(単独)';
+ else if(W==0&&J==0&&A==0)r='村人陣営';
+ else if(W>0&&W>=V+J)r='人狼陣営';
+ else if(J>0&&J>=V+W)r='ジャッカル陣営';
+ if(!r)return false;
+ S.phase='end';S.deadline=null;
+ if(god&&rr('godWin'))log(`★ ${r}が勝利条件を満たしたが、神が全てを乗っ取った！【神の単独勝利】`);
+ else if(fox&&rr('foxWin')&&['村人陣営','人狼陣営','ジャッカル陣営'].includes(r))log(`★ ${r}が勝利条件を満たしたが、妖狐陣営が生き残っているため【妖狐陣営の単独勝利】！`);
+ else if(oy&&rr('onWin')&&['村人陣営','人狼陣営','ジャッカル陣営'].includes(r))log(`★ ${r}が勝利条件を満たしたが、陰陽師が生き残っているため【陰陽師の単独勝利】！`);
+ else if(mp&&rr('stealMS')&&['村人陣営','人狼陣営','ジャッカル陣営'].includes(r))log(`★ ${r}が勝利条件を満たしたが、生き残った${R[mp.role][0]}が勝利を奪った！【${R[mp.role][0]}の単独勝利】`);
+ else{log(`★ ${r}の勝利！`);if(r=='ジャッカル陣営')S.players.filter(p=>p.role=='jfriend').forEach(p=>log(`★ ${p.name}(ジャッカルフレンズ)もジャッカル陣営として勝利`))}
+ al.filter(p=>p.role=='opportunist').forEach(p=>log(`★ ${p.name}(オポチュニスト)は生存したため追加勝利`));
+ al.filter(p=>p.role=='cupid'&&(r=='恋人'||rr('cupidSurv'))).forEach(p=>log(`★ ${p.name}(キューピッド)は生存したため恋人陣営として勝利`));
+ return true}
+function autoCfg(n){const w=Math.max(1,Math.round(n/4)),bw=n>=12?1:0,eg=n>=11?1:0;
+ const c={werewolf:w-bw-eg,evilguesser:eg,bigwolf:bw,seer:1,hunter:n>=6?1:0,medium:n>=7?1:0,madman:n>=8?1:0,knight:n>=8?1:0,thief:n>=9?1:0,cat:n>=9?1:0,teruteru:n>=10?1:0,mason:n>=10?2:0,fanatic:n>=11?1:0,fox:n>=11?1:0,baker:n>=12?1:0,betrayer:n>=13?1:0,mayor:n>=13?1:0,cursed:n>=14?1:0,lover:n>=14?1:0,sheriff:n>=14?1:0,gravekeeper:n>=15?1:0,kogitsune:n>=15?1:0,opportunist:n>=15?1:0,sniper:n>=16?1:0,bait:n>=16?1:0,tracker:n>=16?1:0,poisoner:n>=17?1:0,jackal:n>=17?1:0,sorcerer:n>=18?1:0,arsonist:n>=18?1:0,suicidal:n>=19?1:0,niceguesser:n>=8?1:0,star:n>=9?1:0,wolfpossessed:n>=13?1:0,evilcat:0,modguesser:0,purelover:n>=12?1:0,god:n>=16?1:0,cupid:n>=14?1:0};
+ let t=Object.entries(c).filter(e=>e[0]!='lover'&&e[0]!='modguesser').reduce((a,e)=>a+e[1],0);
+ for(const k of ['cupid','god','purelover','wolfpossessed','suicidal','arsonist','sorcerer','jackal','poisoner','tracker','bait','sniper','opportunist','kogitsune','gravekeeper','sheriff','cursed','mayor','betrayer','baker','fanatic','teruteru','thief','cat','knight','mason','madman','medium','hunter','fox'])while(t>n&&c[k]>0){c[k]--;t--}
+ c.villager=n-t;return c}
+async function start(){
+ const n=S.players.length,arr=[];let C=cfg;if(rr('yami')){C=yamiDraw(n);if(!C)return}for(const k in C)if(k!='modguesser'&&k!='lover')for(let i=0;i<C[k];i++)arr.push(k);
+ if(n<4||arr.length!=n){alert(`4人以上で、役職の合計(${arr.length})を人数(${n})に合わせてください`);return}
+ arr.sort(()=>Math.random()-.5);S.players.forEach((p,i)=>{p.role=arr[i];p.alive=true;delete p.used;delete p.lover;delete p.oil;delete p.gu;delete p.pl;delete p.cu;delete p.guesser;delete p.star;delete p.lu;delete p.lb;delete p.ms;delete p.eat;delete p.eaten;delete p.rh;delete p.rhBy;delete p.bu;delete p.mb;delete p.mu;delete p.tg;delete p.tn;delete p.hk});
+ ph('night');S.recruited=0;S.frames=[];S.libra=null;S.libraOn=0;S.moiraP=null;S.mt=0;S.day=1;S.night={wolf:{}};S.votes={};S.priv={};S.lastExec=null;S.lastGuard=null;S.rc=null;S.rc2=0;S.cfgSh=cfg;S.yami=rr('yami')?1:0;S.comp=Object.entries(C).filter(e=>e[1]>0);S.log=[`ゲーム開始！ 1夜目です${rr('firstAtk')?'':'(初日の襲撃はありません)'}。`];
+ {const lc=S.players.filter(p=>p.role!='purelover').sort(()=>Math.random()-.5),lv=lc.slice(0,2*Math.min(+C.lover||0,lc.length>>1));for(let i=0;i+1<lv.length;i+=2){lv[i].lover=lv[i+1].id;lv[i+1].lover=lv[i].id;pv(lv[i].id,'ラバーズ(恋人): '+lv[i+1].name);pv(lv[i+1].id,'ラバーズ(恋人): '+lv[i].name)}}
+ S.players.filter(p=>p.role=='star').forEach(p=>{p.star=1;log(`★ ${p.name} はスターです！(全員に公開)`)});if(S.yami)log('🍲 闇鍋モード:配役は終了まで非公開です。');
+ {const mg=Math.min(+C.modguesser||0,n),cand=S.players.filter(p=>p.role!='niceguesser'&&p.role!='evilguesser').sort(()=>Math.random()-.5);cand.slice(0,mg).forEach(p=>{p.guesser=1;pv(p.id,'あなたにはモディファイア【ゲッサー】の能力が付与された')})}
+ const nm=r=>S.players.filter(p=>p.role==r).map(p=>p.name).join('、'),wn=S.players.filter(isW).map(p=>p.name).join('、');
+ S.players.forEach(p=>{if(isW(p))pv(p.id,'人狼の仲間: '+wn);if(p.role=='fanatic')pv(p.id,'人狼は: '+wn);if(jT(p)&&S.players.filter(jT).length>1)pv(p.id,'ジャッカル陣営: '+S.players.filter(jT).map(x=>x.name).join('、'));if(p.role=='mason')pv(p.id,'共有者: '+nm('mason'));if(p.role=='betrayer'||p.role=='kogitsune')pv(p.id,'妖狐は: '+nm('fox'));if(p.role=='fox'&&nm('kogitsune'))pv(p.id,'子狐は: '+nm('kogitsune'));if(p.role=='jfriend'&&nm('jackal'))pv(p.id,'ジャッカルは: '+nm('jackal'));if(p.role=='onmyoji')pv(p.id,'人を殺せる者: '+(S.players.filter(x=>isW(x)||x.role=='jackal'||x.role=='arsonist').map(x=>x.name).join('、')||'なし'))});
+ S.players.filter(h=>h.role=='hitman').forEach(h=>{const c=S.players.filter(x=>x.id!=h.id&&x.role!='fox').sort(()=>Math.random()-.5).slice(0,rr('hitN'));h.tg=c.map(x=>x.id);h.tn=c.length;h.hk=0;pv(h.id,'標的: '+c.map(x=>x.name).join('、'))});
+ if(rr('firstSeer')=='white')S.players.filter(p=>p.role=='seer').forEach(sr=>{const c=S.players.filter(x=>x.id!=sr.id&&!jw(x)&&!isW(x)&&!foxT(x));if(c.length){const x=c[Math.random()*c.length|0];pv(sr.id,`1夜目(お告げ): ${x.name} は【人間】でした`)}});
+ await save();
+}
+async function reset(){chats=[];S.chatFrom=new Date().toISOString();drawChat();S.phase='lobby';S.deadline=null;S.frames=[];S.libra=null;S.libraOn=0;S.moiraP=null;S.day=0;S.log=[];S.priv={};S.night={};S.votes={};S.players.forEach(p=>{p.alive=true;delete p.role});await save();render()}
+function force(){S.phase=='night'?dawn():tally();save()}
+function toVote(){S.rc=null;S.rc2=0;S.libraOn=0;if(rr('noVote1')&&S.day==1){log('--- 1日目は処刑なし。夜になります ---');S.votes={};S.libra=null;S.moiraP=null;S.players.forEach(p=>{if(p.role=='libra')delete p.lu;if(p.role=='moira')delete p.mu});ph('night');S.day++;S.night={wolf:{}};save();return}ph('vote');S.votes={};log('--- 投票の時間です ---');const lb=S.libra;S.libra=null;if(lb&&lb.every(k=>P(k)?.alive)){S.rc=lb.slice();S.libraOn=1;log(`⚖️ 天秤が傾いた！ 今日の処刑候補は ${P(lb[0]).name} と ${P(lb[1]).name} の2人だけです(同票なら2人とも処刑)。`)}save()}
+
+let busy=0;
+function tick(){
+ if(!S)return;if(Date.now()-lastAct>IDLE_MS){gone();return}const d=S.deadline,e=$('#cd');
+ if(e)e.textContent=d&&['night','day','vote'].includes(S.phase)?'残り'+Math.max(0,Math.ceil((d-Date.now())/1000))+'秒':'';if(e)e.classList.toggle('warn',!!d&&d-Date.now()<10500&&['night','day','vote'].includes(S.phase));
+ if(isHost&&d&&Date.now()>d&&!busy){busy=1;q=q.then(async()=>{if(S.deadline&&Date.now()>S.deadline){log('(時間切れで自動進行)');S.phase=='night'?dawn():S.phase=='day'?toVote():S.phase=='vote'&&tally();await save();render()}}).catch(console.error).finally(()=>busy=0)}
+}
+// ---- 画面 ----
+function render(f){
+ if(!S)return;const fxr=fxCheck();if(!f&&isHost&&S.phase=='lobby'&&$('#cfgpanel')&&(cfgDirty||cfgN==S.players.length)){$('#plist').innerHTML=plist();totUpd();return}const p=P(me.id),rd=p&&p.role?R[p.role]:null,end=S.phase=='end';
+ let h=`<div class=card><b>部屋: ${esc(room)}</b> ／ ${PH[S.phase]}${S.day?` ${S.day}日目`:''} ${isHost?'<small>(ホスト)</small>':''} <b id=cd style="color:var(--a)"></b></div>`;
+ if(!p)h+='<div class=card>観戦中(ゲーム開始後は参加できません)</div>';
+ if(S.phase=='lobby'){
+  if(!cfgDirty&&cfgN!=S.players.length){cfg=autoCfg(S.players.length);cfgN=S.players.length}
+  h+=`<div class=card id=plist>${plist()}</div>`;
+  if(isHost){
+   const Y=rr('yami');if(!Y)h+='<div class=card id=cfgpanel><b>役職の人数</b> <span class=tot></span><br><input id=cs placeholder="役職を検索(名前・陣営・説明)" oninput="cq=this.value;cfilter()" value="'+esc(cq)+'"><br><button class=sm onclick="cAuto()">人数に合わせて自動配分</button><button class=sm onclick="cFill()">残りを村人で埋める</button><button class=sm onclick="cClr()">全て0にする</button>';
+   if(!Y)CATS.forEach(([t,ks],i)=>{h+=`<details class=fac style="border-color:${FC[i]}" ${facOpen[i]===0?'':'open'} ontoggle="facOpen[${i}]=this.open?1:0"><summary style="color:${FC[i]}"><b>${t}</b> <small class=fc data-c=${i}></small></summary>`+ks.map(k=>`<span class=cfg data-s="${R[k][0]} ${R[k][1]} ${R[k][2]}" title="${R[k][2]}">${R[k][0]}${k=='lover'?'(組)':''} <input type=number min=0 value="${cfg[k]||0}" onchange="setC('${k}',this.value)"></span>`).join('')+'</details>'});
+   h+=(Y?poolPanel():'</div>')+'<div class=card><b>ゲームルール</b>'+rulesEd()+'</div>';
+   h+='<div class=card><b>制限時間(秒・0で無制限)</b> '+tmBox()+'<br><b>設定の保存/読込</b> <select id=ps><option>1</option><option>2</option><option>3</option></select> <button class=sm onclick="psave()">保存</button><button class=sm onclick="pload()">読込</button><br><b>書き出し/読み込み</b> <button class=sm onclick="cexp()">ファイルに書き出し</button><button class=sm onclick="jf.click()">ファイルから読込</button><input id=jf type=file accept=".json,application/json" hidden onchange="cimpf(this)"><details><summary>テキストで書き出し/読込</summary><textarea id=jt rows=5 style="width:100%"></textarea><br><button class=sm onclick="ctxt()">現在の設定をテキスト化(コピー)</button><button class=sm onclick="cimp(jt.value)">テキストから読込</button></details><span class=tot></span> <button onclick="start()">ゲーム開始</button></div>'}
+  else{h+='<div class=card>ホストの開始を待っています…</div>'+rulesCard();if(rr('pubRoles')&&S.cfgSh&&!rr('yami'))h+=`<div class=card><b>配役(予定)</b><br><small>${compTxt(Object.entries(S.cfgSh))}</small></div>`}
+  h+='<div class=card><b>役職一覧</b>'+CATS.map(([t,ks],i)=>`<details class=fac style="border-color:${FC[i]}"><summary style="color:${FC[i]}"><b>${t}</b></summary>`+ks.map(k=>`<small><b>${R[k][0]}</b>(${R[k][1]}): ${R[k][2]}</small>`).join('<br>')+'</details>').join('')+'</div>';
+ }else{
+  if(rd)h+=`<div class=card style="border-left:5px solid ${FC[facOf(p.role)]}">あなた: <b>${esc(p.name)}</b> — <b class=rl2 onclick="roles('${p.role}')" title="役職の詳細">${rd[0]}</b>(${rd[1]})${p.alive?'':' 【死亡】'}<br><small>${rd[2]}</small>${canG(p)?`<br><small>🎯 ゲッサー能力: 昼・投票中に役職を当てられる(${gUsed(p)?'使用済み':`残り${rr('guessN')-(p.gu||0)}回`})</small>`:''}${(S.priv[me.id]||[]).map(x=>`<br>🔎 ${esc(x)}`).join('')}</div>`;
+  if(p&&p.role=='god'&&S.players.every(x=>x.role))h+=`<div class=card><b>👁️ 全員の役職(神の目)</b>`+S.players.map(x=>`<div><small>${esc(x.name)}: <b>${R[x.role][0]}</b>${x.guesser?' +ゲッサー':''}${x.lover?` +ラバーズ(${esc(P(x.lover).name)})`:''}${x.alive?'':' (死亡)'}</small></div>`).join('')+'</div>';
+  if(canG(p)&&p.alive&&!gUsed(p)&&(S.phase=='day'||S.phase=='vote'))h+=`<div class=card>🎯 当てる役職 <select onchange="gsel=this.value">${Object.keys(R).filter(k=>k!='modguesser'&&k!='lover').map(k=>`<option value=${k}${k==gsel?' selected':''}>${R[k][0]}</option>`).join('')}</select> <small>(選んで下の「当てる」を押す。外すと自分が死亡)</small></div>`;
+  if(S.comp&&(S.yami?S.phase=='end':rr('pubRoles')))h+=`<div class=card><small><b>配役:</b> ${compTxt(S.comp)}</small></div>`;if(!isHost)h+=rulesCard();h+='<div class=card>'+S.players.map(x=>{let b='';const N=S.night||{},id=x.id;
+   if(p?.alive&&x.alive&&id!=me.id){
+    if(S.phase=='night'){
+     if(canAtk(p)&&wa()&&!isW(x))b=`<button onclick="act('wolf','${id}')">${N.wolf?.[me.id]==id?'✔ ':''}襲撃</button>`;
+     if(p.role=='jackal'&&S.day>1&&!N.done?.[me.id])b=`<button onclick="act('jackal','${id}')">襲撃</button>`+((S.recruited||0)>=rr('recruitN')?'':`<button class=s onclick="act('recruit','${id}')">勧誘</button>`);
+     if(p.role=='arsonist')b=`<button onclick="act('douse','${id}')">${x.oil?'🛢 ':''}油を塗る</button>`;
+     if(p.role=='sheriff'&&S.day>1)b=`<button onclick="act('sheriff','${id}')">${N.shots?.some(q=>q.by==me.id&&q.t==id)?'✔ ':''}撃つ</button>`;
+     if(p.role=='tracker')b=`<button onclick="act('track','${id}')">${N.track?.[me.id]==id?'✔ ':''}追跡</button>`;
+     if(p.role=='sniper'&&S.day>1&&(p.used||0)<rr('snipeN'))b=`<button onclick="act('snipe','${id}')">${(N.sn||{})[me.id]==id?'✔ ':''}狙撃(残り${rr('snipeN')-(p.used||0)}回)</button>`;if(p.role=='sorcerer')b=`<button onclick="act('sorc','${id}')">${N.sorc==id?'✔ ':''}調べる</button>`;if(p.role=='thief'&&S.day==1&&x.role!='star')b=`<button onclick="act('steal','${id}')">${N.thief==id?'✔ ':''}入れ替え</button>`;if(p.role=='seer'&&(S.day>1||rr('firstSeer')=='free'))b=`<button onclick="act('seer','${id}')">${N.seer==id?'✔ ':''}占う</button>`;
+     if(p.role=='cupid'&&!p.cu&&!x.lover)b=`<button onclick="act('cupid','${id}')">${(N.cp||[]).includes(id)?'✔ ':''}ラバーズにする</button>`;if(p.role=='purelover'&&!p.pl&&!x.lover)b=`<button onclick="act('love','${id}')">${N.love?.t==id?'✔ ':''}恋人になる</button>`;if(p.role=='bomber'&&!p.used&&!isW(x))b+=`<button class=s onclick="cact('bomb','${id}','自爆すると、あなたとこの人が夜明けに死亡します。よろしいですか?')">自爆</button>`;if(p.role=='evilhacker'&&!p.used&&!isW(x))b+=`<button class=s onclick="cact('madden','${id}','この人を狂人にします(1回だけ)。よろしいですか?')">狂わせる</button>`;if(p.role=='hitman')b=`<button onclick="act('hit','${id}')">${(N.hit||{})[me.id]==id?'✔ ':''}殺害</button>`;
+     if(p.role=='chief'&&!p.used)b=`<button onclick="act('appoint','${id}')">任命</button>`;if(p.role=='frame'&&!p.used)b=`<button onclick="cact('frame','${id}','冤罪をかけると、あなたは夜明けに自決します。よろしいですか?')">冤罪をかける</button>`;if(p.role=='hunter'&&!(rr('consGuard')&&S.lastGuard==id))b=`<button onclick="act('guard','${id}')">${N.guard==id?'✔ ':''}護衛</button>`}
+    if(S.phase=='vote'&&(!S.rc||S.rc.includes(id)))b=`<button onclick="act('vote','${id}')">${S.votes[me.id]==id?'✔ ':''}投票</button>`;
+    if(canG(p)&&!gUsed(p)&&(S.phase=='day'||S.phase=='vote'))b+=`<button class=s onclick="guess('${id}')">当てる</button>`;
+    if(p.role=='libra'&&!p.lu&&!S.libra&&S.phase=='day')b+=`<button class=s onclick="act('libra','${id}')">${(p.lb||[]).includes(id)?'✔ ':''}天秤に載せる</button>`;
+    if(p.role=='meetsheriff'&&(p.ms||0)<rr('msN')&&(S.phase=='day'||S.phase=='vote'))b+=`<button class=s onclick="act('mshoot','${id}')">撃つ</button>`;
+    if(p.role=='moira'&&!p.mu&&!S.moiraP&&S.phase=='day')b+=`<button class=s onclick="act('moira','${id}')">${(p.mb||[]).includes(id)?'✔ ':''}入れ替え</button>`}
+   if(p?.alive&&x.alive&&id==me.id&&S.phase=='night'&&p.role=='hunter'&&rr('selfGuard')&&!(rr('consGuard')&&S.lastGuard==id))b=`<button onclick="act('guard','${id}')">${N.guard==id?'✔ ':''}自分を護衛</button>`;
+   if(p?.alive&&!x.alive&&S.phase=='night'&&p.role=='vulture'&&!x.eaten)b=`<button onclick="act('eat','${id}')">${((S.night||{}).eats||{})[me.id]==id?'✔ ':''}喰らう</button>`;
+   if(p?.alive&&!x.alive&&S.phase=='night'&&p.role=='oblivion'&&!p.used)b=`<button onclick="cact('recall','${id}','この人の役職を引き継ぎます(1回だけ)。よろしいですか?')">引き継ぐ</button>`;
+   return`<div class=p data-id="${id}"><span class="${x.alive?'':'dead'}">${esc(x.name)}${x.star?' ⭐':''}${end&&x.lover?' 💕':''}${end?` <small>[${R[x.role][0]}]</small>`:''}</span><span>${b}</span></div>`}).join('')+'</div>';
+  if(S.phase=='night'&&p?.alive&&((p.role=='jackal'&&S.day>1)||p.role=='arsonist'||((p.role=='purelover'&&!p.pl)||(p.role=='cupid'&&!p.cu))||nb(p)))h+=`<div class=card>${p.role=='arsonist'?`<button onclick="act('ignite','')">🔥 点火</button>`:''}<button class=s onclick="act('pass','')">今夜は何もしない${S.night.done?.[me.id]?' (行動済)':''}</button></div>`;
+  if(S.phase=='day'&&p?.alive&&(p.role=='nicebutton'||p.role=='evilbutton')&&!p.bu)h+=`<div class=card><button onclick="cact('button','','緊急会議ボタンを押して、すぐに投票を始めます(1回だけ)。よろしいですか?')">🔔 緊急会議ボタン</button></div>`;
+  if(S.phase=='night'&&p?.alive&&p.role=='sage')h+=`<div class=card><button onclick="act('barrier','')">🛡 聖なるバリアを張る(残り${Math.max(0,rr('sageN')-(p.used||0))}回)${(S.night.bar||{})[me.id]?' ✔張りました':''}</button></div>`;
+  if(S.phase=='night'&&p?.alive&&p.role=='hunter'&&!wa())h+='<div class=card><small>初日夜は襲撃がないため護衛は不要です。</small></div>';
+  if(isHost)h+='<div class=card>ホスト操作: '+(S.phase=='day'?'<button class=s onclick="toVote()">投票を開始</button>':'')+((S.phase=='night'||S.phase=='vote')?'<button onclick="force()">未行動を待たず強制進行</button>':'')+(end?'<button class=s onclick="reset()">ロビーへ戻る</button>':'')+'<br><small>制限時間(秒・次のフェーズから反映)</small> '+tmBox()+'<details '+(rulesOpen?'open':'')+' ontoggle="rulesOpen=this.open"><summary>ルール変更(即時反映)</summary>'+rulesEd()+'</details></div>';
+  h+='<div class=card><b>ログ</b><br>'+[...S.log].reverse().map(x=>`<div>${esc(x)}</div>`).join('')+'</div>';
+ }
+ $('#main').innerHTML=h;totUpd();fxApply(fxr);
+ const o=[['all','全体']];if(isW(p))o.push(['wolf','人狼']);if(p?.role=='mason')o.push(['mason','共有']);if(p&&!p.alive)o.push(['dead','霊界']);
+ const cur=$('#ch').value;$('#ch').innerHTML=o.map(x=>`<option value=${x[0]}>${x[1]}</option>`).join('');if(o.some(x=>x[0]==cur))$('#ch').value=cur;drawChat();
+}
+function drawChat(){
+ const p=S&&P(me.id),v=c=>c=='all'||(p&&((c=='wolf'&&isW(p))||(c=='mason'&&p.role=='mason')||(c=='dead'&&!p.alive)||(!p.alive&&S.phase!='lobby')||S.phase=='end'));
+ const cl={wolf:'w',mason:'ms',dead:'d'},m=$('#msgs');
+ m.innerHTML=chats.filter(c=>v(c.channel)).map(c=>`<div class="${cl[c.channel]||''}"><b>${esc(c.name)}</b>${c.channel!='all'?`[${c.channel}]`:''}: ${esc(c.text)}</div>`).join('');m.scrollTop=m.scrollHeight;
+}
+async function say(){
+ const t=$('#ct').value.trim(),ch=$('#ch').value,p=P(me.id);if(!t)return;if(Date.now()-lastSay<1000)return;lastSay=Date.now();
+ if(ch=='all'&&p?.alive&&S.phase=='night'&&!rr('nightChat')){alert('夜は全体チャットできません');return}
+ $('#ct').value='';await db.from('jinro_chat').insert({room,pid:me.id,name:me.name,channel:ch,text:t.slice(0,200)});
+}
+
+// ===== GAME THEME v2: portraits / decorate =====
+(()=>{const g=$('#scene');for(let i=0;i<9;i++){const f=document.createElement('b');f.className='ff';f.style.cssText=`--x:${5+i*11}%;--y:${6+(i*37%22)}%;--d:${5+i%4*2}s`;f.style.position='absolute';g.appendChild(f)}})();
+const hs=t=>{let h=7;for(const c of t)h=(h*31+c.charCodeAt(0))>>>0;return h};
+const CL=['#2d4a6e','#5a1f2b','#6b4a1c','#4a3f66'];
+function portrait(r,sz,big){
+ const i=facOf(r),fc=FC[i],H=hs(r),sk=['#f6d7bf','#eec3a3','#d9a77f','#f3e3d3'][H%4],hc=['#2b2233','#5b3a29','#c9a24a','#e7e2f0','#7a3a52','#3a5a7a','#2f6b4f'][H%7];
+ const wolf=isW({role:r})||['tanuki','wolfpossessed'].includes(r),fxx=foxT({role:r}),cat=['cat','evilcat','blackcat','schro'].includes(r),dog=['jackal','sidekick','jfriend'].includes(r);
+ const eye=wolf||dog?'#ff4a5e':fxx?'#ffc94a':cat?'#7dffb0':fc;
+ let ear='';const tri=(c,ic)=>`<g class=ear><path d="M36 44L30 14L54 34Z" fill="${c}"/><path d="M38 40L34 22L50 34Z" fill="${ic}"/></g><g class=ear><path d="M84 44L90 14L66 34Z" fill="${c}"/><path d="M82 40L86 22L70 34Z" fill="${ic}"/></g>`;
+ if(wolf)ear=tri('#4b4a58','#e88');else if(fxx)ear=tri('#e8873a','#fff');else if(cat)ear=tri(r=='blackcat'?'#1c1a24':'#b9a48a','#f4a6b6');else if(dog)ear=`<ellipse class=ear cx=30 cy=48 rx=9 ry=18 fill="#8a6a4a"/><ellipse class=ear cx=90 cy=48 rx=9 ry=18 fill="#8a6a4a"/>`;
+ const hood=['seer','medium','sage','onmyoji','moira','sorcerer','cursed','oblivion','evilhacker','fanatic','gravekeeper'].includes(r),halo=['god','cupid','purelover','star','lover','redhood'].includes(r),top=['mayor','chief','baker'].includes(r),helm=['knight','sheriff','meetsheriff','hunter','sniper','hitman','mafia'].includes(r),shade=['hitman','mafia','tracker','election','evilbutton'].includes(r);
+ let hair=`<path d="M33 62Q31 28 60 28Q89 28 87 62Q80 44 60 44Q40 44 33 62Z" fill="${hc}"/>`;
+ if(H%3==0)hair+=`<path d="M33 60Q30 86 38 92L42 66Z M87 60Q90 86 82 92L78 66Z" fill="${hc}"/>`;
+ if(hood)hair=`<path d="M28 76Q22 24 60 20Q98 24 92 76Q86 48 60 46Q34 48 28 76Z" fill="${CL[i]}" stroke="${fc}" stroke-width="1.5"/>`;
+ let acc='';
+ if(top)acc=`<rect x="40" y="10" width="40" height="24" rx="3" fill="#1a1626" stroke="${fc}"/><rect x="28" y="30" width="64" height="7" rx="3" fill="#1a1626" stroke="${fc}"/>`;
+ if(helm)acc=`<path d="M33 52Q33 24 60 24Q87 24 87 52Z" fill="#9aa3b5" stroke="#fff6" /><rect x="57" y="14" width="6" height="14" fill="${fc}"/>`;
+ if(halo)acc=`<ellipse class=au cx=60 cy=16 rx=24 ry=6 fill=none stroke="#ffe27a" stroke-width=4 style="transform-origin:60px 16px;animation:none;filter:drop-shadow(0 0 6px #ffe27a)"/>`;
+ const eyes=shade?`<rect x="40" y="58" width="40" height="11" rx="5" fill="#111" stroke="${fc}"/>`:`<ellipse class=ey cx=50 cy=64 rx=3.4 ry=5 fill="${eye}"/><ellipse class=ey cx=70 cy=64 rx=3.4 ry=5 fill="${eye}"/><circle cx=49 cy=62 r=1.2 fill=#fff /><circle cx=69 cy=62 r=1.2 fill=#fff />`;
+ const mouth=wolf?`<path d="M51 78Q60 84 69 78" stroke="#522" fill=none stroke-width=2 /><path d="M54 79l2 5 2-5M62 79l2 5 2-5" fill="#fff"/>`:`<path d="M53 78Q60 83 67 78" stroke="#6a3b3b" fill=none stroke-width=2 stroke-linecap=round />`;
+ const w=sz,h=Math.round(sz*140/120);
+ return `<span class="pt${big?' big':''}" style="--fc:${fc}"><svg width=${w} height=${h} viewBox="0 0 120 140"><defs><radialGradient id="pg${i}" cx=50% cy=40% r=70%><stop offset=0 stop-color="${fc}" stop-opacity=".55"/><stop offset=1 stop-color="#10091f"/></radialGradient></defs><circle cx=60 cy=72 r=56 fill="url(#pg${i})" stroke="${fc}" stroke-width=2.5 /><circle class=au cx=60 cy=72 r=60 fill=none stroke="${fc}" stroke-width=1.5 stroke-dasharray="4 10" opacity=.8 />${ear}<path d="M16 140Q20 100 60 96Q100 100 104 140Z" fill="${CL[i]}" stroke="${fc}" stroke-width=1.5 /><path d="M44 98L60 116L76 98" fill="none" stroke="${fc}" stroke-width=2 /><rect x=52 y=84 width=16 height=14 fill="${sk}"/><circle cx=60 cy=62 r=26 fill="${sk}"/>${hair}<ellipse cx=45 cy=72 rx=5 ry=3 fill="#ff8a9a" opacity=.3 /><ellipse cx=75 cy=72 rx=5 ry=3 fill="#ff8a9a" opacity=.3 />${eyes}${mouth}${acc}<circle cx=94 cy=114 r=17 fill="#0a0716" stroke="${fc}" stroke-width=2 /><text x=94 y=121 text-anchor=middle font-size=19>${RI[r]||FI[i]}</text></svg></span>`}
+function decorate(){
+ if(!S)return;const p=P(me.id),m=$('#main');if(!m)return;const o=$('#mycard');if(o)o.remove();
+ if(p&&p.role&&S.phase!='lobby'){const r=p.role,i=facOf(r);document.body.dataset.f=i;
+  m.insertAdjacentHTML('afterbegin',`<div id=mycard class=card style="--fc:${FC[i]}${p.alive?'':';filter:grayscale(.8)'}">${portrait(r,104,1)}<div><small>あなたの役職${p.alive?'':'(死亡)'}</small><div class=mn>${R[r][0]}</div><span class=bdg style="background:${FC[i]}">${R[r][1]}</span><div class=md>${R[r][2]}</div></div></div>`)}
+ else delete document.body.dataset.f;
+ m.querySelectorAll('.p[data-id]').forEach(e=>{if(e.querySelector('.av'))return;const id=e.dataset.id,q=P(id);if(!q)return;
+  const sh=q.role&&(id==me.id||S.phase=='end'),nm=q.name||'?';
+  e.insertAdjacentHTML('afterbegin',sh?`<span class="av pt">${portrait(q.role,38)}</span>`:`<span class=av style="--h:${hs(id)%360}">${esc(nm[0]||'?')}</span>`)})
+}
+const _render=render;render=function(f){_render(f);try{decorate()}catch(e){console.error(e)}};
+const _rlist=rlist;rlist=function(){_rlist();document.querySelectorAll('#rlist .ri').forEach(e=>{const k=e.id.slice(3);if(R[k]&&!e.querySelector('.pt'))e.insertAdjacentHTML('afterbegin',portrait(k,58))})};
+</script></body></html>

@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    @apply bg-night-950 text-night-50 font-sans antialiased;
+  }
+  body {
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3 {
+    line-height: 1.2;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-night-900/70 backdrop-blur-md shadow-xl shadow-black/30;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition duration-200 ease-out active:scale-95 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-gold-400 text-night-950 hover:bg-gold-300 hover:shadow-lg hover:shadow-gold-500/30;
+  }
+  .btn-ghost {
+    @apply btn border border-white/15 bg-white/5 text-night-100 hover:border-white/30 hover:bg-white/10;
+  }
+  .btn-wolf {
+    @apply btn bg-rose-600 text-white hover:bg-rose-500 hover:shadow-lg hover:shadow-rose-600/30;
+  }
+  .btn-seer {
+    @apply btn bg-sky-500 text-night-950 hover:bg-sky-400 hover:shadow-lg hover:shadow-sky-500/30;
+  }
+  .btn-safe {
+    @apply btn bg-emerald-500 text-night-950 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30;
+  }
+  .field {
+    @apply w-full rounded-lg border border-white/15 bg-night-950/60 px-3 py-2 text-night-50 placeholder:text-night-300 outline-none transition focus:border-gold-400 focus:ring-2 focus:ring-gold-400/30;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
